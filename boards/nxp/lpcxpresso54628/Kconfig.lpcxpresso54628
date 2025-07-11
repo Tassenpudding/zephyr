@@ -1,0 +1,8 @@
+# LPCXpresso54628 board
+
+# Copyright 2017, 2024 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_LPCXPRESSO54628
+	select SOC_LPC54628
+	select SOC_PART_NUMBER_LPC54628J512ET180

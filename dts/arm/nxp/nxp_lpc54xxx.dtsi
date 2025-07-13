@@ -56,6 +56,7 @@
 		 * LPC540xx: RAMX: 192K, SRAM0: 64K, SRAM1: 32K, SRAM2: 32K, SRAM3: 32K, USBRAM: 8K
 		 * LPC5410x: RAMX: ----, SRAM0: 64K, SRAM1: 32K, USBRAM: 8K @ 0x03400000
 		 * LPC5411x: RAMX: 32K,  SRAM0: 64K, SRAM1: 64K, SRAM2: 32K
+		 * LPC54628: RAMX: 512K, SRAM0: 64K, SRAM1: 64K, SRAM2: 32K
 		 *
 		 * SRAM0-SRAM3 will be contiguous memory when present.
 		 *
@@ -83,6 +84,7 @@
 		 * LPC54018: 192K @ 0x04000000
 		 * LPC540xx: 192K @ 0x04000000
 		 * LPC541xx:  32K @ 0x04000000
+		 * LPC54628:  32K @ 0x04000000
 		 */
 		sramx:memory@04000000{
 			compatible = "mmio-sram";
@@ -131,6 +133,22 @@
 			gpio1: gpio@1 {
 				compatible = "nxp,lpc-gpio-port";
 				reg = <1>;
+				int-source = "pint";
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+
+			gpio2: gpio@2 {
+				compatible = "nxp,lpc-gpio-port";
+				reg = <2>;
+				int-source = "pint";
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+
+			gpio3: gpio@3 {
+				compatible = "nxp,lpc-gpio-port";
+				reg = <3>;
 				int-source = "pint";
 				gpio-controller;
 				#gpio-cells = <2>;

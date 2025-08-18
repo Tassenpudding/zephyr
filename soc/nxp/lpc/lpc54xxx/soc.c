@@ -49,7 +49,7 @@
 __weak void clock_init(void)
 {
 
-#ifdef CONFIG_SOC_LPC54114_M4
+#if defined(CONFIG_SOC_LPC54114_M4) || defined(CONFIG_SOC_LPC54628)
 	/* Set up the clock sources */
 
 	/* Ensure FRO is on */

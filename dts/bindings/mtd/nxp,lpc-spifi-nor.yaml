@@ -1,0 +1,48 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  NXP LPC SPIFI-attached serial NOR flash.
+
+  The SPIFI block on the LPC54xxx/LPC55xxx families is a dedicated serial
+  flash interface with a memory-mapped read window. This node represents the
+  SPIFI controller together with the single NOR flash device wired to it; the
+  driver auto-detects the flash geometry from SFDP at initialization.
+
+  reg lists two regions selected by reg-names:
+    - "control": the SPIFI peripheral register block
+    - "memory":  the memory-mapped read window (used for the read path)
+
+  Example:
+
+      &spifi {
+          status = "okay";
+          pinctrl-0 = <&pinmux_spifi>;
+          pinctrl-names = "default";
+          spi-max-frequency = <30000000>;
+      };
+
+compatible: "nxp,lpc-spifi-nor"
+
+include: [base.yaml, pinctrl-device.yaml, "jedec,jesd216.yaml"]
+
+properties:
+  reg:
+    required: true
+
+  reg-names:
+    required: true
+
+  pinctrl-0:
+    required: true
+
+  pinctrl-names:
+    required: true
+
+  spi-max-frequency:
+    type: int
+    default: 30000000
+    description: |
+      Maximum SCK frequency in Hz for the memory read command issued after
+      SFDP discovery. The default (30 MHz) is safe for the basic (0x03) read
+      command this driver uses; the SFDP probe itself always runs slower.

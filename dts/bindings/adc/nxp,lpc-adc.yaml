@@ -1,0 +1,63 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  NXP LPC 12-bit SAR ADC (the "GPADC" on the LPC54xxx family).
+
+  This is the sequence-based general-purpose ADC: selected channels are
+  programmed as a single conversion sequence (sequence A) and converted
+  lowest-channel-first on a software trigger, matching the Zephyr ADC
+  channels bitmask directly. The driver wraps the MCUXpresso SDK lpc_adc
+  component.
+
+compatible: "nxp,lpc-adc"
+
+include: [adc-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  vref-mv:
+    type: int
+    default: 3300
+    description: |
+      ADC reference voltage (VREFP) in millivolts, reported through the
+      Zephyr ADC ref_internal API. Defaults to the common 3.3 V rail.
+
+  sample-time:
+    type: int
+    default: 0
+    enum: [0, 1, 2, 3, 4, 5, 6, 7]
+    description: |
+      Additional sample-time ADC clocks (CTRL.TSAMP field, range 0-7) added
+      to the base 2.5 ADC clocks. Increase for higher source impedance.
+
+  dmas:
+    description: |
+      Optional DMA channel used by the conversion-sequence-B streaming path
+      (CONFIG_ADC_MCUX_LPC_ADC_STREAM). Format is <&dma-controller channel>.
+      The ADC0-SeqB request is routed to this channel's trigger input via
+      INPUTMUX in the driver.
+
+  dma-names:
+    enum: ["seqb"]
+    description: |
+      Name for the streaming DMA channel; must be "seqb".
+
+  nxp,stream-sample-rate-hz:
+    type: int
+    default: 1000000
+    description: |
+      Sample rate (per channel) of the CTIMER-triggered sequence-B streaming
+      path, in Hz. Defaults to 1 MHz (the legacy firmware's HF acquisition
+      rate). Only used when CONFIG_ADC_MCUX_LPC_ADC_STREAM is enabled.
+
+  "#io-channel-cells":
+    const: 1
+
+io-channel-cells:
+  - input

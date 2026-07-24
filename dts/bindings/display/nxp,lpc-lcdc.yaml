@@ -1,0 +1,54 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  NXP LPC LCD controller (LCDC).
+
+  The LCDC is a parallel-RGB TFT/STN controller. Panel timings are described by
+  a "zephyr,panel-timing" child node, matching the convention used by the other
+  NXP LCD controller bindings, so panel shields apply unchanged.
+
+compatible: "nxp,lpc-lcdc"
+
+include: [lcd-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  data-bus-width:
+    type: string
+    default: "16-bit"
+    enum:
+      - "16-bit"
+      - "8-bit"
+      - "18-bit"
+      - "24-bit"
+    description:
+      LCD data bus width. The default is set to the reset value of 16-bit.
+
+  backlight-gpios:
+    type: phandle-array
+    description:
+      LCD backlight control GPIO. The driver initializes this GPIO to active
+      high and toggles it on display blanking on/off.
+
+  memory-region:
+    type: phandle
+    description:
+      Phandle to a reserved memory region (typically external SDRAM) used to
+      hold the driver-allocated framebuffers. Required when the controller
+      allocates its own framebuffers (CONFIG_MCUX_LCDC_FB_NUM > 0), since a
+      full-screen framebuffer does not fit in internal SRAM.
+
+  nxp,swap-red-blue:
+    type: boolean
+    description:
+      Swap the red and blue color components (BGR order). Required on panels
+      whose red/blue data lines are wired opposite to the controller's default.

@@ -72,6 +72,19 @@ config ETH_STM32_DWC_ETHER_1000
 	  This enables the Synopsys DesignWare MAC driver for STM32 SoCs.
 	  Applicable for STM32F1/F2/F4/F7 series; tested only on F2/F4/F7.
 
+config ETH_NXP_LPC546XX
+	bool "Driver for DWC Ethernet QoS-based NXP LPC546xx"
+	depends on DT_HAS_NXP_LPC546XX_ETHERNET_ENABLED
+	depends on NET_BUF_FIXED_DATA_SIZE
+	select ETH_DWC_ETHER_QOS_CORE
+	select PINCTRL
+	select HWINFO
+	default y
+	help
+	  Enable the NXP LPC546xx Ethernet MAC. This provides the LPC546xx
+	  platform glue (clock gate, block reset, RMII interface select and
+	  pin routing) for the generic Synopsys DesignWare EMAC-QoS core.
+
 config ETH_DWMAC_MMU
 	bool "Synopsys DesignWare MAC driver for MMU based platforms"
 	depends on MMU

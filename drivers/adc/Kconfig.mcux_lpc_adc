@@ -1,0 +1,42 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config ADC_MCUX_LPC_ADC
+	bool "NXP LPC 12-bit SAR ADC driver"
+	default y
+	depends on DT_HAS_NXP_LPC_ADC_ENABLED
+	help
+	  Enable the driver for the NXP LPC 12-bit SAR ADC (the "GPADC" on the
+	  LPC54xxx family, e.g. the LPC546xx). The driver wraps the MCUXpresso
+	  SDK lpc_adc component and drives conversion sequence A: the Zephyr ADC
+	  channel bitmask is programmed as one hardware sequence and converted
+	  on a software trigger.
+
+if ADC_MCUX_LPC_ADC
+
+config ADC_MCUX_LPC_ADC_STREAM
+	bool "NXP LPC ADC sequence-B DMA streaming (RTIO)"
+	depends on ADC_STREAM
+	select DMA
+	select DMA_MCUX_LPC
+	select NXP_INPUTMUX
+	help
+	  Enable the high-rate streaming path on conversion sequence B: a CTIMER
+	  match triggers the sequence continuously and DMA moves each result into
+	  a buffer, exposed through the Zephyr RTIO ADC streaming API
+	  (adc_stream()). Used for the HF voltage/current channels. The on-demand
+	  sequence-A adc_read() path is unaffected.
+
+config ADC_MCUX_LPC_ADC_STREAM_BLOCK_SAMPLES
+	int "Samples per DMA block (per ping-pong buffer)"
+	depends on ADC_MCUX_LPC_ADC_STREAM
+	default 128
+	help
+	  Total number of 16-bit ADC samples (summed across all streamed
+	  channels) the DMA collects into one ping-pong buffer before raising a
+	  completion callback. The per-channel sample count of a streamed frame
+	  is this value divided by the number of streamed channels. Larger values
+	  reduce interrupt/CQE overhead at the cost of latency and RAM (two such
+	  buffers are allocated).
+
+endif # ADC_MCUX_LPC_ADC

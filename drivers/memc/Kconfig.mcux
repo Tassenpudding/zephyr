@@ -130,3 +130,25 @@ config MEMC_MCUX_XSPI
 	select PINCTRL
 
 endif # DT_HAS_NXP_XSPI_PSRAM_ENABLED
+
+if DT_HAS_NXP_LPC_EMC_ENABLED
+
+config MEMC_MCUX_EMC
+	bool "MCUX LPC EMC (external memory controller) driver"
+	default y
+	select PINCTRL
+	help
+	  Enable the NXP LPC External Memory Controller driver, which brings up
+	  external SDRAM attached to the EMC dynamic memory interface.
+
+config MEMC_MCUX_EMC_MAX_SDRAM_CHIPS
+	int "Maximum number of SDRAM chips on the EMC"
+	default 1
+	range 1 4
+	depends on MEMC_MCUX_EMC
+	help
+	  Upper bound on the number of dynamic (SDRAM) chips described as
+	  children of an nxp,lpc-emc node. Sizes a stack array used during
+	  initialization.
+
+endif # DT_HAS_NXP_LPC_EMC_ENABLED

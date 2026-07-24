@@ -1,0 +1,17 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config FLASH_MCUX_SPIFI
+	bool "NXP LPC SPIFI serial NOR flash driver"
+	default y
+	depends on DT_HAS_NXP_LPC_SPIFI_NOR_ENABLED
+	select FLASH_HAS_DRIVER_ENABLED
+	select FLASH_HAS_EXPLICIT_ERASE
+	select FLASH_HAS_PAGE_LAYOUT
+	select PINCTRL
+	help
+	  Enable the driver for a serial NOR flash attached to the NXP LPC
+	  SPIFI controller (e.g. on the LPC546xx). The driver wraps the NXP
+	  MCUXpresso SDK SPIFI NOR-flash component: it brings up the SPIFI
+	  clock/reset/pins and maps Zephyr's flash API onto the vendor
+	  Nor_Flash_* calls, discovering the flash geometry from SFDP at boot.

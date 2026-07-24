@@ -1,0 +1,30 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  NXP LPC546xx Ethernet MAC. This is a Synopsys DesignWare EMAC-QoS instance
+  driven by the generic dwc_ether_qos core via an LPC546xx platform glue
+  (clock gate, block reset, RMII interface select and pin routing).
+
+compatible: "nxp,lpc546xx-ethernet"
+
+include: [ethernet-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  pinctrl-0:
+    required: true
+
+  pinctrl-names:
+    required: true
+
+  phy-connection-type:
+    required: true

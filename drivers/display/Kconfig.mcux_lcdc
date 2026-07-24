@@ -1,0 +1,14 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config DISPLAY_MCUX_LCDC
+	bool "MCUX LPC LCDC driver"
+	default y
+	depends on DT_HAS_NXP_LPC_LCDC_ENABLED
+	select PINCTRL
+	select PWM if $(dt_compat_any_has_prop,$(DT_COMPAT_NXP_LPC_LCDC),pwms)
+	help
+	  Enable support for the NXP LPC LCD controller (LCDC). The driver scans
+	  out a full-screen framebuffer supplied by the caller (zero copy), so it
+	  is intended to be used with LVGL configured for full-refresh double
+	  buffering, with the rendering buffers placed in external SDRAM.

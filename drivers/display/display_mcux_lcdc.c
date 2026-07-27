@@ -9,6 +9,7 @@
 #include <zephyr/drivers/display.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/dt-bindings/display/panel.h>
 #include <zephyr/kernel.h>
@@ -32,6 +33,9 @@ struct mcux_lcdc_config {
 	const struct device *clock_dev;
 	clock_control_subsys_t clock_subsys;
 	struct gpio_dt_spec backlight_gpio;
+#if DT_ANY_INST_HAS_PROP_STATUS_OKAY(pwms)
+	struct pwm_dt_spec backlight_pwm;
+#endif
 	lcdc_config_t lcdc_config;
 	uint8_t *fb[2];
 	size_t fb_size;
@@ -108,6 +112,13 @@ static int mcux_lcdc_blanking_off(const struct device *dev)
 {
 	const struct mcux_lcdc_config *config = dev->config;
 
+#if DT_ANY_INST_HAS_PROP_STATUS_OKAY(pwms)
+	/* A PWM backlight takes precedence: drive it to full brightness. */
+	if (config->backlight_pwm.dev != NULL) {
+		return pwm_set_pulse_dt(&config->backlight_pwm, config->backlight_pwm.period);
+	}
+#endif
+
 	if (config->backlight_gpio.port) {
 		return gpio_pin_set_dt(&config->backlight_gpio, 1);
 	}
@@ -119,11 +130,38 @@ static int mcux_lcdc_blanking_on(const struct device *dev)
 {
 	const struct mcux_lcdc_config *config = dev->config;
 
+#if DT_ANY_INST_HAS_PROP_STATUS_OKAY(pwms)
+	if (config->backlight_pwm.dev != NULL) {
+		return pwm_set_pulse_dt(&config->backlight_pwm, 0);
+	}
+#endif
+
 	if (config->backlight_gpio.port) {
 		return gpio_pin_set_dt(&config->backlight_gpio, 0);
 	}
 
 	return -ENOSYS;
+}
+
+static int mcux_lcdc_set_brightness(const struct device *dev, const uint8_t brightness)
+{
+#if DT_ANY_INST_HAS_PROP_STATUS_OKAY(pwms)
+	const struct mcux_lcdc_config *config = dev->config;
+	uint32_t pulse;
+
+	if (config->backlight_pwm.dev == NULL) {
+		return -ENOSYS;
+	}
+
+	/* Scale the 0-255 brightness linearly onto the PWM period. */
+	pulse = (uint32_t)(((uint64_t)config->backlight_pwm.period * brightness) / 255U);
+
+	return pwm_set_pulse_dt(&config->backlight_pwm, pulse);
+#else
+	ARG_UNUSED(dev);
+	ARG_UNUSED(brightness);
+	return -ENOSYS;
+#endif
 }
 
 static int mcux_lcdc_set_pixel_format(const struct device *dev,
@@ -199,6 +237,19 @@ static int mcux_lcdc_init(const struct device *dev)
 		return ret;
 	}
 
+#if DT_ANY_INST_HAS_PROP_STATUS_OKAY(pwms)
+	if (config->backlight_pwm.dev != NULL) {
+		if (!pwm_is_ready_dt(&config->backlight_pwm)) {
+			LOG_ERR("Backlight PWM not ready");
+			return -ENODEV;
+		}
+		/* Start at full brightness. */
+		ret = pwm_set_pulse_dt(&config->backlight_pwm, config->backlight_pwm.period);
+		if (ret) {
+			return ret;
+		}
+	} else
+#endif
 	if (config->backlight_gpio.port) {
 		ret = gpio_pin_configure_dt(&config->backlight_gpio, GPIO_OUTPUT_ACTIVE);
 		if (ret) {
@@ -249,6 +300,7 @@ static int mcux_lcdc_init(const struct device *dev)
 static DEVICE_API(display, mcux_lcdc_api) = {
 	.blanking_on = mcux_lcdc_blanking_on,
 	.blanking_off = mcux_lcdc_blanking_off,
+	.set_brightness = mcux_lcdc_set_brightness,
 	.write = mcux_lcdc_write,
 	.get_capabilities = mcux_lcdc_get_capabilities,
 	.set_pixel_format = mcux_lcdc_set_pixel_format,
@@ -296,6 +348,8 @@ static DEVICE_API(display, mcux_lcdc_api) = {
 		.clock_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(id)),                                \
 		.clock_subsys = (clock_control_subsys_t)DT_INST_CLOCKS_CELL(id, name),             \
 		.backlight_gpio = GPIO_DT_SPEC_INST_GET_OR(id, backlight_gpios, {0}),              \
+		IF_ENABLED(DT_ANY_INST_HAS_PROP_STATUS_OKAY(pwms),                                 \
+			(.backlight_pwm = PWM_DT_SPEC_INST_GET_OR(id, {0}),))                       \
 		.panel_width = DT_INST_PROP(id, width),                                            \
 		.panel_height = DT_INST_PROP(id, height),                                          \
 		.pixel_format = DT_INST_PROP(id, pixel_format),                                    \

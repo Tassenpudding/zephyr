@@ -39,6 +39,15 @@ properties:
       LCD backlight control GPIO. The driver initializes this GPIO to active
       high and toggles it on display blanking on/off.
 
+  pwms:
+    type: phandle-array
+    description: |
+      Optional PWM driving the LCD backlight. When present it takes precedence
+      over the backlight-gpios property. The driver implements
+      display_set_brightness() (linear 0-255 to duty cycle) and dims via
+      full/zero duty on blanking off/on. The PWM period sets the backlight
+      frequency.
+
   memory-region:
     type: phandle
     description:

@@ -489,6 +489,12 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 	}
 #endif
 
+#if defined(CONFIG_ETH_NXP_LPC546XX)
+	if ((uint32_t)sub_system == MCUX_ENET_CLK) {
+		CLOCK_EnableClock(kCLOCK_Eth);
+	}
+#endif
+
 	return 0;
 }
 

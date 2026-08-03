@@ -484,6 +484,12 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 	}
 #endif
 
+#if defined(CONFIG_FLASH_MCUX_SPIFI)
+	if ((uint32_t)sub_system == MCUX_SPIFI_CLK) {
+		CLOCK_EnableClock(kCLOCK_Spifi);
+	}
+#endif
+
 	return 0;
 }
 
@@ -1103,6 +1109,12 @@ static int mcux_lpc_syscon_clock_control_get_subsys_rate(const struct device *de
 #if defined(CONFIG_ADC_MCUX_LPC_ADC)
 	case MCUX_ADC0_CLK:
 		*rate = CLOCK_GetAdcClkFreq();
+		break;
+#endif
+
+#if defined(CONFIG_FLASH_MCUX_SPIFI)
+	case MCUX_SPIFI_CLK:
+		*rate = CLOCK_GetSpifiClkFreq();
 		break;
 #endif
 	}

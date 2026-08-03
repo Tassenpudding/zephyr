@@ -246,6 +246,9 @@
 /** ADC0 peripheral clock identifier. */
 #define MCUX_ADC0_CLK MCUX_LPC_CLK_ID(0x3C, 0x00)
 
+/** SPIFI (serial NOR flash) peripheral clock identifier. */
+#define MCUX_SPIFI_CLK MCUX_LPC_CLK_ID(0x3D, 0x00)
+
 /** FRO high-frequency clock (FRO_HF) rate identifier. */
 #define MCUX_FRO_HF_CLK MCUX_LPC_CLK_ID(0x40, 0x00)
 

@@ -98,6 +98,88 @@
 		gpio-map = <1 0 &gpio2 27 0>,	/* Pin 2: touch reset  */
 			   <2 0 &gpio4 0 0>;	/* Pin 3: touch interrupt */
 	};
+
+	/*
+	 * Arduino Uno R3 shield receptacle -> SoC pad map (schematic sheet 10).
+	 * A0-A3 are ADC0 inputs (channels 4-7); A4/A5 and some digital pins are
+	 * shared with on-board functions (A4 = accelerometer INT, A5 = user
+	 * button SW5, D5 = LED1), so a shield using those contends with them.
+	 */
+	arduino_header: connector {
+		compatible = "arduino-header-r3";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 16 0>,	/* A0 */
+			   <1 0 &gpio0 31 0>,	/* A1 */
+			   <2 0 &gpio1 0 0>,	/* A2 */
+			   <3 0 &gpio2 0 0>,	/* A3 */
+			   <4 0 &gpio3 4 0>,	/* A4 */
+			   <5 0 &gpio1 1 0>,	/* A5 */
+			   <6 0 &gpio3 26 0>,	/* D0  */
+			   <7 0 &gpio3 27 0>,	/* D1  */
+			   <8 0 &gpio3 2 0>,	/* D2  */
+			   <9 0 &gpio4 5 0>,	/* D3  */
+			   <10 0 &gpio3 10 0>,	/* D4  */
+			   <11 0 &gpio3 14 0>,	/* D5  */
+			   <12 0 &gpio3 1 0>,	/* D6  */
+			   <13 0 &gpio1 22 0>,	/* D7  */
+			   <14 0 &gpio4 7 0>,	/* D8  */
+			   <15 0 &gpio2 1 0>,	/* D9  */
+			   <16 0 &gpio3 30 0>,	/* D10 */
+			   <17 0 &gpio3 21 0>,	/* D11 */
+			   <18 0 &gpio3 22 0>,	/* D12 */
+			   <19 0 &gpio3 20 0>,	/* D13 */
+			   <20 0 &gpio3 23 0>,	/* D14 */
+			   <21 0 &gpio3 24 0>;	/* D15 */
+	};
+
+	/*
+	 * Pmod1 (J14): a Digilent Pmod Type 6A connector, but it is really the
+	 * on-board Link2 debug probe's SPI/I2C "host interface" presented in Pmod
+	 * form. Its pins are the debug-bridge / ISP pins shared between the target
+	 * and the probe: SPI on FlexComm3 (P0_0-P0_3, also the ISP/bridge SPI),
+	 * I2C on FlexComm1 (P0_13/P0_14), IO6 on the bridge GPIO (P3_13) and IO5
+	 * on the bridge interrupt (P0_4/P0_5, selected by solder jumper JS32,
+	 * mapped to P0_4/ISP0 here). Driving it from the target therefore
+	 * contends with the debug probe's bridge functions.
+	 */
+	pmod1_header: pmod-connector-1 {
+		compatible = "digilent,pmod";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio0 1 0>,	/* IO1: SPI SSEL (FC3) */
+			   <1 0 &gpio0 3 0>,	/* IO2: SPI MOSI (FC3) */
+			   <2 0 &gpio0 2 0>,	/* IO3: SPI MISO (FC3) */
+			   <3 0 &gpio0 0 0>,	/* IO4: SPI SCK (FC3)  */
+			   <4 0 &gpio0 4 0>,	/* IO5: INT (bridge, JS32 P0_4/P0_5) */
+			   <5 0 &gpio3 13 0>,	/* IO6: GPIO (bridge GPIO) */
+			   <6 0 &gpio0 14 0>,	/* IO7: I2C SCL (FC1) */
+			   <7 0 &gpio0 13 0>;	/* IO8: I2C SDA (FC1) */
+	};
+
+	/*
+	 * Pmod2 (J11): a Digilent Pmod Type 6A connector. Every pin is shared
+	 * with an on-board function, so a Pmod here contends with them: the SPI
+	 * pins are FlexComm9 (also the Arduino-header SPI), the I2C pins are
+	 * FlexComm2 (the shared codec/touch/accelerometer bus), IO5 is the I2S
+	 * master clock (MCLK) pin, and IO6 is ADC0 channel 7.
+	 */
+	pmod2_header: pmod-connector {
+		compatible = "digilent,pmod";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <0 0 &gpio3 30 0>,	/* IO1: SPI SSEL (FC9) */
+			   <1 0 &gpio3 21 0>,	/* IO2: SPI MOSI (FC9) */
+			   <2 0 &gpio3 22 0>,	/* IO3: SPI MISO (FC9) */
+			   <3 0 &gpio3 20 0>,	/* IO4: SPI SCK (FC9)  */
+			   <4 0 &gpio3 11 0>,	/* IO5: GPIO (I2S MCLK) */
+			   <5 0 &gpio2 0 0>,	/* IO6: INT (ADC0 IN7) */
+			   <6 0 &gpio3 24 0>,	/* IO7: I2C SCL (FC2) */
+			   <7 0 &gpio3 23 0>;	/* IO8: I2C SDA (FC2) */
+	};
 };
 
 &cpu0 {
@@ -306,4 +388,24 @@ i2s_rx: &flexcomm7 {
 
 &pdmc1 {
 	status = "okay";
+};
+
+/* Arduino/expansion-header SPI (D13 SCK, D11 MOSI, D12 MISO, D10 SSEL0). */
+arduino_spi: &flexcomm9 {
+	status = "okay";
+	compatible = "nxp,lpc-spi";
+	pinctrl-0 = <&pinmux_flexcomm9_spi>;
+	pinctrl-names = "default";
+	#address-cells = <1>;
+	#size-cells = <0>;
+};
+
+/* The shared I2C bus (touch/codec/accelerometer) is also the Arduino I2C. */
+arduino_i2c: &flexcomm2 {};
+
+/* Arduino-header UART (D0 RX / D1 TX) on FlexComm4; a shield enables it. */
+arduino_serial: &flexcomm4 {
+	compatible = "nxp,lpc-usart";
+	pinctrl-0 = <&pinmux_flexcomm4_usart>;
+	pinctrl-names = "default";
 };

@@ -141,6 +141,16 @@ __weak void clock_init(void)
 	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
 #endif
 
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm4), nxp_lpc_usart, okay)
+	/* Attach 12 MHz clock to FLEXCOMM4 (Arduino-header UART). */
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM4);
+#endif
+
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm9), nxp_lpc_spi, okay)
+	/* Attach 12 MHz clock to FLEXCOMM9 (Arduino-header SPI). */
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM9);
+#endif
+
 #if defined(CONFIG_UDC_NXP_IP3511) || defined(CONFIG_USB_DC_NXP_LPCIP3511)
 #if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(usbhs), nxp_lpcip3511, okay)
 	/* Turn on the USB1 high-speed PHY. */

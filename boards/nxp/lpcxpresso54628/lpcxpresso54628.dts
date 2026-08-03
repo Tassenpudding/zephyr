@@ -63,6 +63,17 @@
 			label = "User LED3";
 		};
 	};
+
+	/*
+	 * 16 MB external SDRAM (Micron MT48LC8M16A2) on the EMC dynamic
+	 * chip-select 0. Declared as a memory-region so data (e.g. the LVGL
+	 * framebuffers, which do not fit in internal SRAM) can be linked here.
+	 */
+	sdram0: memory@a0000000 {
+		compatible = "zephyr,memory-region", "mmio-sram";
+		reg = <0xa0000000 DT_SIZE_M(16)>;
+		zephyr,memory-region = "SDRAM";
+	};
 };
 
 &cpu0 {
@@ -133,5 +144,33 @@ zephyr_udc0: &usbhs {
 			label = "storage";
 			reg = <0x0 DT_SIZE_M(16)>;
 		};
+	};
+};
+
+&emc {
+	status = "okay";
+	pinctrl-0 = <&pinmux_emc>;
+	pinctrl-names = "default";
+	/* Read-capture delay for the 110 MHz EMC clock (found by memory test;
+	 * valid window 22-31, 26 is centered for margin). */
+	nxp,emc-feedback-clock-delay = <26>;
+
+	sdram@0 {
+		compatible = "nxp,lpc-emc-sdram";
+		reg = <0>;			/* EMC dynamic chip-select 0 (DYCS0) */
+		nxp,address-mapping = <0x09>;	/* 16-bit, 4 banks, 12 rows, 9 cols */
+		nxp,sdram-mode-register = <0x33>;
+		nxp,ras-latency = <2>;
+		nxp,mode-register-delay = <2>;
+		refresh-period-ns = <15625>;
+		t-rp-ns = <18>;
+		t-ras-ns = <42>;
+		t-srex-ns = <67>;
+		t-apr-ns = <18>;
+		t-wr-ns = <6>;
+		t-rc-ns = <60>;
+		t-rfc-ns = <60>;
+		t-xsr-ns = <67>;
+		t-rrd-ns = <12>;
 	};
 };

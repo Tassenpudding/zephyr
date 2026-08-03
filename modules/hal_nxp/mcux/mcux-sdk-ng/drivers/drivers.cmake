@@ -116,6 +116,7 @@ set_variable_ifdef(CONFIG_GPIO_MCUX_RGPIO       CONFIG_MCUX_COMPONENT_driver.rgp
 set_variable_ifdef(CONFIG_I2S_MCUX_SAI          CONFIG_MCUX_COMPONENT_driver.sai)
 set_variable_ifdef(CONFIG_DAI_NXP_SAI           CONFIG_MCUX_COMPONENT_driver.sai)
 set_variable_ifdef(CONFIG_MEMC_MCUX_FLEXSPI     CONFIG_MCUX_COMPONENT_driver.flexspi)
+set_variable_ifdef(CONFIG_MEMC_MCUX_EMC         CONFIG_MCUX_COMPONENT_driver.emc)
 set_variable_ifdef(CONFIG_FLASH_MCUX_SPIFI      CONFIG_MCUX_COMPONENT_driver.spifi)
 # The SPIFI NOR-flash command/SFDP layer is provided by the flash_nor_spifi
 # component, whose SDK CMakeLists is board/device-coupled (mflash selection) and

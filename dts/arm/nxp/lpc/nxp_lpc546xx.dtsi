@@ -355,6 +355,15 @@
 			clocks = <&syscon MCUX_SPIFI_CLK>;
 			status = "disabled";
 		};
+
+		emc: emc@40081000 {
+			compatible = "nxp,lpc-emc";
+			reg = <0x40081000 0x1000>;
+			clocks = <&syscon MCUX_EMC_CLK>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
 	};
 };
 

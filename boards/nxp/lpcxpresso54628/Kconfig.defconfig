@@ -1,0 +1,28 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_LPCXPRESSO54628
+
+if LVGL
+
+# The LVGL rendering buffers are full-screen (the display shield forces
+# full-refresh mode) and do not fit in the 160 KB internal SRAM, so link them
+# into the external SDRAM memory-region.
+config LV_Z_VDB_ZEPHYR_REGION
+	default y
+
+config LV_Z_VDB_ZEPHYR_REGION_NAME
+	default "SDRAM"
+
+# A full-screen software render of a complex screen takes longer than one
+# frame, so the LVGL thread stays CPU-bound at its priority during animations.
+# Deliver touch events synchronously on the (cooperative) system workqueue that
+# polls the controller, rather than through the preemptible input thread, which
+# would otherwise be starved by the render loop and drop touch mid-animation.
+choice INPUT_MODE
+	default INPUT_MODE_SYNCHRONOUS
+endchoice
+
+endif # LVGL
+
+endif # BOARD_LPCXPRESSO54628

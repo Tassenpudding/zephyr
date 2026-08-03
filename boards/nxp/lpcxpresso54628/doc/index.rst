@@ -20,7 +20,7 @@ Hardware
 - Three user LEDs, target reset, ISP and interrupt/user buttons
 - Expansion options based on Arduino UNO and PMOD, plus additional expansion
   port pins
-- 8MB SPIFI serial flash, 128Mb SDRAM
+- 16MB SPIFI serial flash, 128Mb SDRAM
 - 10/100 Mbps Ethernet, full-speed and high-speed USB, CAN
 
 More information can be found here:
@@ -53,6 +53,51 @@ The IOCON controller can be used to configure the LPC54628 pins.
 +---------+-----------------+----------------------------+
 | PIO2_2  | GPIO            | User LED3                  |
 +---------+-----------------+----------------------------+
+| PIO1_1  | GPIO            | User button SW5            |
++---------+-----------------+----------------------------+
+
+.. note::
+
+   The push buttons labelled SW2, SW3 and SW4 double as the ISP2/ISP1/ISP0
+   boot-mode selectors and are wired to PIO0_6, PIO0_5 and PIO0_4. On this
+   board those pins are used as the EMC data bus (EMC_D4/EMC_D3/EMC_D2) for the
+   on-board SDRAM, so they cannot be used as GPIO inputs while the external
+   memory controller is enabled. Only SW5 (PIO1_1) is available as a general
+   user button.
+
+Audio codec and the shared I2C bus
+==================================
+
+The on-board WM8904 audio codec is controlled over FlexComm2 I2C (PIO3_23 SDA /
+PIO3_24 SCL), a bus it shares with the FXOS8700-compatible accelerometer and the
+Arduino header. Its audio master clock, MCLK, is driven from the SoC on PIO3_11.
+
+PIO3_11 (MCLK, ball B2) sits next to PIO3_23 (I2C SDA, ball C2), and the
+24.576 MHz MCLK couples onto the SDA line. Once MCLK is running, I2C transfers to
+*any* device on FlexComm2 (codec and accelerometer alike) can intermittently lose
+arbitration. The effect is dominated by bench wiring (a jack-to-jack audio
+loopback cable and jumper leads roughly quadruple the error rate), so on a
+cleanly cabled board it is usually within margin, but it is present.
+
+Because the codec's I2C control interface does not itself need MCLK -- only the
+codec's internal clocking and the I2S audio stream do -- applications that drive
+audio on this board should configure the codec with MCLK kept off PIO3_11, then
+route MCLK to the pin before starting the I2S stream. The MCLK clock source stays
+running throughout (so the codec driver still reads the correct MCLK rate); only
+the pin mux is gated:
+
+.. code-block:: c
+
+   #include <soc.h>
+
+   /* FUNC1 = MCLK, FUNC0 = GPIO (no clock on the pin). */
+   #define MCLK_PIN_FUNC(f) \
+      (IOCON->PIO[3][11] = (IOCON->PIO[3][11] & ~IOCON_PIO_FUNC_MASK) | IOCON_PIO_FUNC(f))
+
+   MCLK_PIN_FUNC(0);                    /* MCLK off the pin: clean I2C */
+   audio_codec_configure(codec, &cfg);
+   MCLK_PIN_FUNC(1);                    /* MCLK back to the codec for streaming */
+   /* ... configure and start the I2S stream ... */
 
 Programming and Debugging
 *************************

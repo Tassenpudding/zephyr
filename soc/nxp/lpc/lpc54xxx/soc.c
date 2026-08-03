@@ -197,6 +197,12 @@ __weak void clock_init(void)
 			(CPU_FREQ / FSL_FEATURE_SDIF_MAX_SOURCE_CLOCK) + 1U, true);
 #endif
 
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(sctimer0), nxp_sctimer_pwm, okay)
+	/* SCTimer PWM (e.g. the LCD backlight) is clocked from the main clock. */
+	CLOCK_AttachClk(kMAIN_CLK_to_SCT_CLK);
+	CLOCK_SetClkDiv(kCLOCK_DivSctClk, 1, false);
+#endif
+
 	/*
 	 * The M_CAN functional clock is the core clock divided by CANnCLKDIV,
 	 * which is halted out of reset. Divide by 11 -> 20 MHz at a 220 MHz

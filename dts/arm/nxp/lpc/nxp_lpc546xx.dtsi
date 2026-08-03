@@ -381,6 +381,16 @@
 			#dma-cells = <1>;
 			status = "disabled";
 		};
+
+		sctimer0: pwm@40085000 {
+			compatible = "nxp,sctimer-pwm";
+			reg = <0x40085000 0x1000>;
+			interrupts = <12 0>;
+			clocks = <&syscon MCUX_SCTIMER_CLK>;
+			prescaler = <8>;
+			#pwm-cells = <3>;
+			status = "disabled";
+		};
 	};
 };
 

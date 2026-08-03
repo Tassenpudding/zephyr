@@ -403,6 +403,16 @@
 			prescale = <0>;
 			status = "disabled";
 		};
+
+		adc0: adc@400a0000 {
+			compatible = "nxp,lpc-adc";
+			reg = <0x400a0000 0x1000>;
+			interrupts = <22 0>, <23 0>;
+			interrupt-names = "seqa", "seqb";
+			clocks = <&syscon MCUX_ADC0_CLK>;
+			#io-channel-cells = <1>;
+			status = "disabled";
+		};
 	};
 };
 

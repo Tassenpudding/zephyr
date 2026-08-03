@@ -243,6 +243,9 @@
 /** PowerQuad DSP coprocessor clock identifier. */
 #define MCUX_POWERQUAD_CLK MCUX_LPC_CLK_ID(0x39, 0x00)
 
+/** LCD controller peripheral clock identifier. */
+#define MCUX_LCD_CLK MCUX_LPC_CLK_ID(0x3A, 0x00)
+
 /** EMC (external memory controller) peripheral clock identifier. */
 #define MCUX_EMC_CLK MCUX_LPC_CLK_ID(0x3B, 0x00)
 

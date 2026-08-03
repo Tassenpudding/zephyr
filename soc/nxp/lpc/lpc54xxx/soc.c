@@ -136,6 +136,11 @@ __weak void clock_init(void)
 	/* Attach 12 MHz clock to FLEXCOMM0 */
 	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM0);
 
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm2), nxp_lpc_i2c, okay)
+	/* Attach 12 MHz clock to FLEXCOMM2 (touch-controller I2C). */
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+#endif
+
 #if defined(CONFIG_UDC_NXP_IP3511) || defined(CONFIG_USB_DC_NXP_LPCIP3511)
 #if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(usbhs), nxp_lpcip3511, okay)
 	/* Turn on the USB1 high-speed PHY. */
@@ -195,6 +200,36 @@ __weak void clock_init(void)
 	CLOCK_AttachClk(kMAIN_CLK_to_SDIO_CLK);
 	CLOCK_SetClkDiv(kCLOCK_DivSdioClk,
 			(CPU_FREQ / FSL_FEATURE_SDIF_MAX_SOURCE_CLOCK) + 1U, true);
+#endif
+
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm6), nxp_lpc_i2s, okay) || \
+	DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm7), nxp_lpc_i2s, okay)
+	/*
+	 * I2S audio: clock the FlexComm I2S channels and MCLK from the audio
+	 * PLL. 24.576 MHz is 512 * 48 kHz, giving the standard 48 kHz family of
+	 * sample rates.
+	 */
+	pll_config_t audio_pll_config = {
+		.desiredRate = 24576000U,
+		.inputRate = 12000000U,
+	};
+	pll_setup_t audio_pll_setup;
+
+	CLOCK_SetupAudioPLLData(&audio_pll_config, &audio_pll_setup);
+	audio_pll_setup.flags = PLL_SETUPFLAG_POWERUP | PLL_SETUPFLAG_WAITLOCK;
+	CLOCK_SetupAudioPLLPrec(&audio_pll_setup, audio_pll_setup.flags);
+
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm6), nxp_lpc_i2s, okay)
+	CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM6);
+#endif
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(flexcomm7), nxp_lpc_i2s, okay)
+	CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM7);
+#endif
+
+	/* Drive MCLK from the audio PLL (no divider) out on the MCLK pin. */
+	CLOCK_AttachClk(kAUDIO_PLL_to_MCLK);
+	SYSCON->MCLKDIV = SYSCON_MCLKDIV_DIV(0U);
+	SYSCON->MCLKIO = 1U;
 #endif
 
 #if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(sctimer0), nxp_sctimer_pwm, okay)

@@ -391,6 +391,14 @@
 			#pwm-cells = <3>;
 			status = "disabled";
 		};
+
+		lcdc: lcdc@40083000 {
+			compatible = "nxp,lpc-lcdc";
+			reg = <0x40083000 0x1000>;
+			interrupts = <53 0>;
+			clocks = <&syscon MCUX_LCD_CLK>;
+			status = "disabled";
+		};
 	};
 };
 

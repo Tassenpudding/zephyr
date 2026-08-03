@@ -249,6 +249,9 @@
 /** LPACMP (Low-Power Analog Comparator) peripheral clock identifier. */
 #define MCUX_LPACMP_CLK MCUX_LPC_CLK_ID(0x3B, 0x00)
 
+/** EMC (external memory controller) peripheral clock identifier. */
+#define MCUX_EMC_CLK MCUX_LPC_CLK_ID(0x3E, 0x00)
+
 /** ADC0 peripheral clock identifier. */
 #define MCUX_ADC0_CLK MCUX_LPC_CLK_ID(0x3C, 0x00)
 

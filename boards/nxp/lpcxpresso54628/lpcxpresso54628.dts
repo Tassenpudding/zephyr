@@ -28,6 +28,7 @@
 		led2 = &led3;
 		usart-0 = &flexcomm0;
 		sw0 = &user_button;
+		dmic0 = &dmic0;
 	};
 
 	/*
@@ -294,4 +295,15 @@ i2s_rx: &flexcomm7 {
 	#size-cells = <0>;
 	pinctrl-0 = <&pinmux_flexcomm7_i2s>;
 	pinctrl-names = "default";
+};
+
+/* On-board MEMS digital microphone (SPH0641LM4H) on DMIC channel 1. */
+&dmic0 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_dmic>;
+	pinctrl-names = "default";
+};
+
+&pdmc1 {
+	status = "okay";
 };

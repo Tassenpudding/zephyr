@@ -70,4 +70,14 @@
 			bias-pull-up;
 		};
 	};
+
+	/* ADC0 analog inputs on the Arduino header: A0-A3 = channels 4-7. */
+	pinmux_adc0: pinmux_adc0 {
+		group0 {
+			pinmux = <ADC0_CH4_PIO0_16>,
+				 <ADC0_CH5_PIO0_31>,
+				 <ADC0_CH6_PIO1_0>,
+				 <ADC0_CH7_PIO2_0>;
+		};
+	};
 };

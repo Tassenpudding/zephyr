@@ -107,3 +107,10 @@ zephyr_udc0: &usbhs {
 		status = "okay";
 	};
 };
+
+/* On-chip 12-bit SAR ADC; channel 4 (PIO0_16) routed by default. */
+&adc0 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_adc0>;
+	pinctrl-names = "default";
+};

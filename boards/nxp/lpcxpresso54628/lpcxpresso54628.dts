@@ -230,3 +230,68 @@ zephyr_lcdif: &lcdc {
 	pinctrl-0 = <&pinmux_sctimer0_lcd>;
 	pinctrl-names = "default";
 };
+
+/*
+ * FlexComm2 is the shared on-board I2C bus: the WM8904 audio codec (0x1a), the
+ * MMA8652 accelerometer (0x1d) and, on the parallel-display shield, the touch
+ * controller (0x38). Enabled here for the on-board codec.
+ */
+nxp_touch_i2c: &flexcomm2 {
+	compatible = "nxp,lpc-i2c";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&pinmux_flexcomm2_i2c>;
+	pinctrl-names = "default";
+
+	audio_codec: wm8904@1a {
+		compatible = "wolfson,wm8904";
+		reg = <0x1a>;
+		clock-source = "MCLK";
+		clocks = <&syscon MCUX_AUDIO_MCLK>;
+		clock-names = "mclk";
+	};
+
+	/*
+	 * NXP MMA8652FC 3-axis accelerometer. Handled by the fxos8700 driver
+	 * (auto-detected by WHOAMI). INT1 is wired to P3_4; INT2 is unconnected.
+	 */
+	mma8652: mma8652@1d {
+		compatible = "nxp,fxos8700", "nxp,mma8652fc";
+		reg = <0x1d>;
+		int1-gpios = <&gpio3 4 GPIO_ACTIVE_LOW>;
+	};
+};
+
+/* DMA controller: required by the FlexComm I2S audio channels. */
+&dma0 {
+	status = "okay";
+};
+
+/*
+ * I2S transmit (playback) to the WM8904 codec on FlexComm6. The pads are only
+ * otherwise used as unused EMC chip-selects, so this is always available.
+ */
+i2s_tx: &flexcomm6 {
+	status = "okay";
+	compatible = "nxp,lpc-i2s";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&pinmux_flexcomm6_i2s>;
+	pinctrl-names = "default";
+};
+
+/*
+ * I2S receive (record) from the WM8904 codec on FlexComm7. Its pads are shared
+ * with the parallel LCD (LCD_VD0-2), so it is disabled by default; an
+ * application that records audio and does not drive the parallel display
+ * enables it.
+ */
+i2s_rx: &flexcomm7 {
+	compatible = "nxp,lpc-i2s";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&pinmux_flexcomm7_i2s>;
+	pinctrl-names = "default";
+};

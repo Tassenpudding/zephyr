@@ -270,3 +270,50 @@ zephyr_lcdif: &lcdc {
 	pinctrl-0 = <&pinmux_sctimer0_lcd>;
 	pinctrl-names = "default";
 };
+
+/*
+ * FlexComm2 is the shared on-board I2C bus, already enabled for the
+ * accelerometer (0x1d). Add the WM8904 audio codec (0x1a) and the label the
+ * parallel-display shields use for their touch controller (0x38).
+ */
+nxp_touch_i2c: &flexcomm2 {
+	audio_codec: wm8904@1a {
+		compatible = "wolfson,wm8904";
+		reg = <0x1a>;
+		clock-source = "MCLK";
+		clocks = <&syscon MCUX_AUDIO_MCLK>;
+		clock-names = "mclk";
+	};
+};
+
+/* DMA controller: required by the FlexComm I2S audio channels. */
+&dma0 {
+	status = "okay";
+};
+
+/*
+ * I2S transmit (playback) to the WM8904 codec on FlexComm6. The pads are only
+ * otherwise used as unused EMC chip-selects, so this is always available.
+ */
+i2s_tx: &flexcomm6 {
+	status = "okay";
+	compatible = "nxp,lpc-i2s";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&pinmux_flexcomm6_i2s>;
+	pinctrl-names = "default";
+};
+
+/*
+ * I2S receive (record) from the WM8904 codec on FlexComm7. Its pads are shared
+ * with the parallel LCD (LCD_VD0-2), so it is disabled by default; an
+ * application that records audio and does not drive the parallel display
+ * enables it.
+ */
+i2s_rx: &flexcomm7 {
+	compatible = "nxp,lpc-i2s";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&pinmux_flexcomm7_i2s>;
+	pinctrl-names = "default";
+};

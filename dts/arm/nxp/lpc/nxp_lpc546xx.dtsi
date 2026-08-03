@@ -346,6 +346,15 @@
 			#io-channel-cells = <1>;
 			status = "disabled";
 		};
+
+		spifi: spifi@40080000 {
+			compatible = "nxp,lpc-spifi-nor";
+			reg = <0x40080000 0x1000>,
+			      <0x10000000 DT_SIZE_M(16)>;
+			reg-names = "control", "memory";
+			clocks = <&syscon MCUX_SPIFI_CLK>;
+			status = "disabled";
+		};
 	};
 };
 

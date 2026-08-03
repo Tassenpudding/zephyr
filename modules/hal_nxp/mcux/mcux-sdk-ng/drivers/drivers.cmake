@@ -116,6 +116,15 @@ set_variable_ifdef(CONFIG_GPIO_MCUX_RGPIO       CONFIG_MCUX_COMPONENT_driver.rgp
 set_variable_ifdef(CONFIG_I2S_MCUX_SAI          CONFIG_MCUX_COMPONENT_driver.sai)
 set_variable_ifdef(CONFIG_DAI_NXP_SAI           CONFIG_MCUX_COMPONENT_driver.sai)
 set_variable_ifdef(CONFIG_MEMC_MCUX_FLEXSPI     CONFIG_MCUX_COMPONENT_driver.flexspi)
+set_variable_ifdef(CONFIG_FLASH_MCUX_SPIFI      CONFIG_MCUX_COMPONENT_driver.spifi)
+# The SPIFI NOR-flash command/SFDP layer is provided by the flash_nor_spifi
+# component, whose SDK CMakeLists is board/device-coupled (mflash selection) and
+# cannot be entered standalone under Zephyr; wire its single source here.
+zephyr_library_sources_ifdef(CONFIG_FLASH_MCUX_SPIFI
+  ${MCUX_SDK_NG_DIR}/components/flash/nor/spifi/fsl_spifi_nor_flash.c)
+zephyr_include_directories_ifdef(CONFIG_FLASH_MCUX_SPIFI
+  ${MCUX_SDK_NG_DIR}/components/flash/nor
+  ${MCUX_SDK_NG_DIR}/components/flash/nor/spifi)
 set_variable_ifdef(CONFIG_PWM_MCUX              CONFIG_MCUX_COMPONENT_driver.pwm)
 set_variable_ifdef(CONFIG_VIDEO_MCUX_CSI        CONFIG_MCUX_COMPONENT_driver.csi)
 set_variable_ifdef(CONFIG_WDT_MCUX_IMX_WDOG     CONFIG_MCUX_COMPONENT_driver.wdog01)

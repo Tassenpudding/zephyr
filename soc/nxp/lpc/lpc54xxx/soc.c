@@ -238,6 +238,14 @@ __weak void clock_init(void)
 	CLOCK_SetClkDiv(kCLOCK_DivSctClk, 1, false);
 #endif
 
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(dmic0), nxp_dmic, okay)
+	/* Digital microphone: the DMIC functional clock is the PDM bit clock.
+	 * 12 MHz FRO / 6 = 2 MHz, within the SPH0641 microphone's range.
+	 */
+	CLOCK_AttachClk(kFRO12M_to_DMIC);
+	CLOCK_SetClkDiv(kCLOCK_DivDmicClk, 6, false);
+#endif
+
 	/*
 	 * The M_CAN functional clock is the core clock divided by CANnCLKDIV,
 	 * which is halted out of reset. Divide by 11 -> 20 MHz at a 220 MHz

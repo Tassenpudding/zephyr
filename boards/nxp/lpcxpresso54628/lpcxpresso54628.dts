@@ -114,3 +114,24 @@ zephyr_udc0: &usbhs {
 	pinctrl-0 = <&pinmux_adc0>;
 	pinctrl-names = "default";
 };
+
+/* On-board Winbond W25Q128JV (128 Mbit / 16 MiB) QSPI NOR on the SPIFI bus. */
+&spifi {
+	status = "okay";
+	pinctrl-0 = <&pinmux_spifi>;
+	pinctrl-names = "default";
+	spi-max-frequency = <30000000>;
+	jedec-id = [ef 40 18];
+	size = <DT_SIZE_M(128)>;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		storage_partition: partition@0 {
+			label = "storage";
+			reg = <0x0 DT_SIZE_M(16)>;
+		};
+	};
+};

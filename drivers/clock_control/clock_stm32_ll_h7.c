@@ -185,13 +185,15 @@
 #endif
 #endif /* CONFIG_CPU_CORTEX_M7 */
 
-#if defined(CONFIG_CPU_CORTEX_M7)
-/* Offset to access bus clock registers from M7 (or only) core */
+/* Bus clock enable registers.
+ *
+ * The unsuffixed RCC_xxxENR registers are CPU-aware on the dual-core parts: the
+ * hardware detects which CPU performed the access and allocates the peripheral
+ * to that CPU, so the same offset serves both cores (RM0399 rev 4, section
+ * 9.5.10 "Peripheral allocation"). Addressing the RCC_C1_xxxENR or
+ * RCC_C2_xxxENR block explicitly would tie the allocation to one fixed CPU.
+ */
 #define STM32H7_BUS_CLK_REG	DT_REG_ADDR(DT_NODELABEL(rcc))
-#elif defined(CONFIG_CPU_CORTEX_M4)
-/* Offset to access bus clock registers from M4 core */
-#define STM32H7_BUS_CLK_REG	DT_REG_ADDR(DT_NODELABEL(rcc)) + 0x60
-#endif
 
 #if IS_ENABLED(STM32_PLL_P_ENABLED)
 BUILD_ASSERT(((STM32_PLL_P_DIVISOR == 1) || (STM32_PLL_P_DIVISOR % 2) == 0),

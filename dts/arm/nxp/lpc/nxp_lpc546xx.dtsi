@@ -39,6 +39,11 @@
 	};
 
 	soc {
+		uuid: flash@1000100 {
+			compatible = "nxp,lpc-uid";
+			reg = <0x01000100 0x10>;
+		};
+
 		sramx: memory@4000000 {
 			compatible = "zephyr,memory-region", "mmio-sram";
 			reg = <0x04000000 DT_SIZE_K(32)>;
@@ -405,11 +410,18 @@
 		};
 
 		enet: ethernet@40092000 {
-			compatible = "nxp,lpc546xx-ethernet";
+			compatible = "nxp,lpc546xx-ethernet", "snps,dwmac";
 			reg = <0x40092000 0x2000>;
 			interrupts = <49 0>;
 			clocks = <&syscon MCUX_ENET_CLK>;
 			status = "disabled";
+
+			mdio: mdio {
+				compatible = "snps,dwmac-mdio";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
 		};
 
 		usbhs: usbhs@40094000 {

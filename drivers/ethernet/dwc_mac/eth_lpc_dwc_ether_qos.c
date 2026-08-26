@@ -23,6 +23,7 @@ LOG_MODULE_REGISTER(dwmac_plat, CONFIG_ETHERNET_LOG_LEVEL);
 #include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
+#include <zephyr/sys/crc.h>
 
 #include <fsl_device_registers.h>
 #include <fsl_reset.h>
@@ -31,6 +32,22 @@ LOG_MODULE_REGISTER(dwmac_plat, CONFIG_ETHERNET_LOG_LEVEL);
 
 /* The DMA bus master interface is 32-bit on this IP. */
 #define DATA_BUS_WIDTH 32
+
+#if DT_INST_ENUM_HAS_VALUE(0, phy_connection_type, mii)
+#define PHY_SEL_VALUE 0U
+#elif DT_INST_ENUM_HAS_VALUE(0, phy_connection_type, rmii)
+#define PHY_SEL_VALUE 1U
+#else
+#error "Unsupported PHY connection type"
+#endif
+
+/*
+ * NXP OUI, used with the locally administered bit set when the devicetree
+ * provides no MAC address of its own.
+ */
+#define NXP_OUI_B0 0x00
+#define NXP_OUI_B1 0x60
+#define NXP_OUI_B2 0x37
 
 DWMAC_ASSERT_BUFFER_ALIGNMENT(DATA_BUS_WIDTH);
 
@@ -50,11 +67,11 @@ int dwmac_bus_init(const struct device *dev)
 	}
 
 	/*
-	 * Select the RMII PHY interface. Per the reference manual this must be
-	 * set before the ENET DMA is taken out of reset.
+	 * Select the PHY interface. This is sampled only while the ENET block
+	 * reset is asserted, so it has to be set before the reset is pulsed.
 	 */
-	SYSCON->ETHPHYSEL =
-		(SYSCON->ETHPHYSEL & ~SYSCON_ETHPHYSEL_PHY_SEL_MASK) | SYSCON_ETHPHYSEL_PHY_SEL(1U);
+	SYSCON->ETHPHYSEL = (SYSCON->ETHPHYSEL & ~SYSCON_ETHPHYSEL_PHY_SEL_MASK) |
+			    SYSCON_ETHPHYSEL_PHY_SEL(PHY_SEL_VALUE);
 
 	/* Pulse the ENET block reset. */
 	RESET_PeripheralReset(kETH_RST_SHIFT_RSTn);
@@ -80,38 +97,48 @@ static struct dwmac_dma_desc dwmac_tx_descs[NB_TX_DESCS] __desc_mem;
 static struct dwmac_dma_desc dwmac_rx_descs[NB_RX_DESCS] __desc_mem;
 
 /*
- * Program a stable, locally-administered unicast MAC address derived from the
- * die unique ID. The core does not manage the PHY over MDIO, so the address is
- * set here directly; a per-chip value keeps boards on the same segment distinct.
+ * Take the MAC address from the devicetree, and fall back to one derived from
+ * the die unique ID so that a board without one still gets an address that is
+ * stable across resets and distinct from other boards on the same segment.
  */
-static void lpc_eth_set_mac(uint8_t mac[6])
+static int lpc_eth_mac_load(const struct net_eth_mac_config *cfg, uint8_t *mac_addr)
 {
-	uint8_t uid[8];
-	ssize_t len = hwinfo_get_device_id(uid, sizeof(uid));
+	uint8_t uid[16];
+	uint32_t hash;
+	ssize_t len;
+	int ret;
 
-	mac[0] = 0x02; /* locally administered, unicast */
-	mac[1] = 0x60;
-	mac[2] = 0x37;
-
-	if (len >= 3) {
-		mac[3] = uid[len - 3];
-		mac[4] = uid[len - 2];
-		mac[5] = uid[len - 1];
-	} else {
-		mac[3] = 0x00;
-		mac[4] = 0x00;
-		mac[5] = 0x01;
+	ret = net_eth_mac_load(cfg, mac_addr);
+	if (ret != -ENODATA) {
+		return ret;
 	}
+
+	len = hwinfo_get_device_id(uid, sizeof(uid));
+	if (len < 0) {
+		return len;
+	}
+
+	/* Locally administered (LAA), as this is not assigned by the manufacturer. */
+	mac_addr[0] = NXP_OUI_B0 | 0x02;
+	mac_addr[1] = NXP_OUI_B1;
+	mac_addr[2] = NXP_OUI_B2;
+
+	hash = crc32_ieee(uid, len);
+	memcpy(&mac_addr[3], &hash, 3);
+
+	return 0;
 }
 
 int dwmac_platform_init(const struct device *dev)
 {
+	const struct net_eth_mac_config mac_cfg = NET_ETH_MAC_DT_INST_CONFIG_INIT(0);
 	struct dwmac_priv *p = dev->data;
+	int ret;
 
 	p->tx_descs = dwmac_tx_descs;
 	p->rx_descs = dwmac_rx_descs;
 
-	/* RMII, 100 Mbit/s, full duplex. */
+	/* Basic configuration for this platform; the PHY updates speed and duplex. */
 	DWMAC_REG_WRITE(MAC_CONF, MAC_CONF_PS | MAC_CONF_FES | MAC_CONF_DM);
 	DWMAC_REG_WRITE(DMA_SYSBUS_MODE, DMA_SYSBUS_MODE_AAL | DMA_SYSBUS_MODE_FB);
 
@@ -119,7 +146,11 @@ int dwmac_platform_init(const struct device *dev)
 	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), dwmac_isr, DEVICE_DT_INST_GET(0), 0);
 	irq_enable(DT_INST_IRQN(0));
 
-	lpc_eth_set_mac(p->mac_addr);
+	ret = lpc_eth_mac_load(&mac_cfg, p->mac_addr);
+	if (ret != 0) {
+		LOG_ERR("Failed to load a MAC address (%d)", ret);
+		return ret;
+	}
 
 	return 0;
 }

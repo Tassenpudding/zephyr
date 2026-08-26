@@ -270,5 +270,19 @@ zephyr_udc0: &usbhs {
 	pinctrl-0 = <&pinmux_enet>;
 	pinctrl-names = "default";
 	phy-connection-type = "rmii";
+	phy-handle = <&phy0>;
 	status = "okay";
+};
+
+&mdio {
+	status = "okay";
+
+	phy0: ethernet-phy@0 {
+		compatible = "ethernet-phy";
+		reg = <0>;
+		reset-gpios = <&gpio2 26 GPIO_ACTIVE_LOW>;
+		reset-assert-us = <10000>;
+		reset-deassert-us = <100000>;
+		status = "okay";
+	};
 };

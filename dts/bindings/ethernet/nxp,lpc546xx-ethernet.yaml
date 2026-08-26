@@ -8,7 +8,9 @@ description: |
 
 compatible: "nxp,lpc546xx-ethernet"
 
-include: [ethernet-controller.yaml, pinctrl-device.yaml]
+include:
+  - name: snps,dwmac.yaml
+  - name: pinctrl-device.yaml
 
 properties:
   reg:

@@ -496,7 +496,7 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 	}
 #endif
 
-#if defined(CONFIG_ETH_NXP_LPC546XX)
+#if DT_HAS_COMPAT_STATUS_OKAY(nxp_lpc546xx_ethernet)
 	if ((uint32_t)sub_system == MCUX_ENET_CLK) {
 		CLOCK_EnableClock(kCLOCK_Eth);
 	}
@@ -562,6 +562,13 @@ static int mcux_lpc_syscon_clock_control_get_subsys_rate(const struct device *de
 		break;
 	case MCUX_EXT_CLK:
 		*rate = CLOCK_GetSysOscFreq();
+		break;
+#endif
+
+#if DT_HAS_COMPAT_STATUS_OKAY(nxp_lpc546xx_ethernet)
+	case MCUX_ENET_CLK:
+		/* The ENET CSR clock, from which the MDIO clock is divided. */
+		*rate = CLOCK_GetFreq(kCLOCK_BusClk);
 		break;
 #endif
 

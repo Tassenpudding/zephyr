@@ -1,0 +1,16 @@
+/*
+ * Copyright 2026 NXP
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		i2s-codec-tx = &i2s_tx;
+	};
+};
+
+/* The sample reads both DMIC channels; channel 0 is not connected here. */
+&pdmc0 {
+	status = "okay";
+};

@@ -20,10 +20,8 @@ LOG_MODULE_REGISTER(dwmac_plat, CONFIG_ETHERNET_LOG_LEVEL);
 #include <zephyr/kernel.h>
 #include <zephyr/net/ethernet.h>
 #include <zephyr/drivers/clock_control.h>
-#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
-#include <zephyr/sys/crc.h>
 
 #include <fsl_device_registers.h>
 #include <fsl_reset.h>
@@ -41,13 +39,7 @@ LOG_MODULE_REGISTER(dwmac_plat, CONFIG_ETHERNET_LOG_LEVEL);
 #error "Unsupported PHY connection type"
 #endif
 
-/*
- * NXP OUI, used with the locally administered bit set when the devicetree
- * provides no MAC address of its own.
- */
-#define NXP_OUI_B0 0x00
-#define NXP_OUI_B1 0x60
-#define NXP_OUI_B2 0x37
+static const uint8_t nxp_oui[3] = DWMAC_NXP_OUI;
 
 DWMAC_ASSERT_BUFFER_ALIGNMENT(DATA_BUS_WIDTH);
 
@@ -96,39 +88,6 @@ int dwmac_bus_init(const struct device *dev)
 static struct dwmac_dma_desc dwmac_tx_descs[NB_TX_DESCS] __desc_mem;
 static struct dwmac_dma_desc dwmac_rx_descs[NB_RX_DESCS] __desc_mem;
 
-/*
- * Take the MAC address from the devicetree, and fall back to one derived from
- * the die unique ID so that a board without one still gets an address that is
- * stable across resets and distinct from other boards on the same segment.
- */
-static int lpc_eth_mac_load(const struct net_eth_mac_config *cfg, uint8_t *mac_addr)
-{
-	uint8_t uid[16];
-	uint32_t hash;
-	ssize_t len;
-	int ret;
-
-	ret = net_eth_mac_load(cfg, mac_addr);
-	if (ret != -ENODATA) {
-		return ret;
-	}
-
-	len = hwinfo_get_device_id(uid, sizeof(uid));
-	if (len < 0) {
-		return len;
-	}
-
-	/* Locally administered (LAA), as this is not assigned by the manufacturer. */
-	mac_addr[0] = NXP_OUI_B0 | 0x02;
-	mac_addr[1] = NXP_OUI_B1;
-	mac_addr[2] = NXP_OUI_B2;
-
-	hash = crc32_ieee(uid, len);
-	memcpy(&mac_addr[3], &hash, 3);
-
-	return 0;
-}
-
 int dwmac_platform_init(const struct device *dev)
 {
 	const struct net_eth_mac_config mac_cfg = NET_ETH_MAC_DT_INST_CONFIG_INIT(0);
@@ -146,7 +105,7 @@ int dwmac_platform_init(const struct device *dev)
 	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), dwmac_isr, DEVICE_DT_INST_GET(0), 0);
 	irq_enable(DT_INST_IRQN(0));
 
-	ret = lpc_eth_mac_load(&mac_cfg, p->mac_addr);
+	ret = dwmac_mac_addr_load(&mac_cfg, nxp_oui, p->mac_addr);
 	if (ret != 0) {
 		LOG_ERR("Failed to load a MAC address (%d)", ret);
 		return ret;

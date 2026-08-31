@@ -17,9 +17,7 @@ LOG_MODULE_REGISTER(dwmac_plat, CONFIG_ETHERNET_LOG_LEVEL);
 #include <zephyr/kernel.h>
 #include <zephyr/net/ethernet.h>
 #include <zephyr/drivers/clock_control.h>
-#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/pinctrl.h>
-#include <zephyr/sys/crc.h>
 #include <zephyr/irq.h>
 #include <fsl_device_registers.h>
 
@@ -44,17 +42,10 @@ DWMAC_ASSERT_BUFFER_ALIGNMENT(DATA_BUS_WIDTH);
 #endif
 
 /*
- * OUI used when devicetree carries no MAC address and one has to be derived
- * from the chip's unique ID. NXP prints a per-board address from this same OUI
- * on the board label, but does not store it anywhere the SoC can read; set
- * local-mac-address in devicetree to use that one instead.
+ * NXP prints a per-board address from this OUI on the board label, but does not
+ * store it anywhere the SoC can read, so a derived address is used instead.
  */
-#define NXP_OUI_BYTE_0 0x00
-#define NXP_OUI_BYTE_1 0x04
-#define NXP_OUI_BYTE_2 0x9f
-
-/* Locally administered address bit of the first MAC octet */
-#define ETH_MAC_LAA_BIT 0x02
+static const uint8_t nxp_oui[3] = DWMAC_NXP_OUI;
 
 PINCTRL_DT_INST_DEFINE(0);
 static const struct pinctrl_dev_config *eth0_pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(0);
@@ -131,49 +122,6 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_DCACHE),
 static struct dwmac_dma_desc dwmac_tx_descs[NB_TX_DESCS] __desc_mem;
 static struct dwmac_dma_desc dwmac_rx_descs[NB_RX_DESCS] __desc_mem;
 
-static int nxp_load_mac_addr(const struct net_eth_mac_config *cfg, uint8_t *mac_addr)
-{
-	uint8_t unique_device_id[16] = {0};
-	ssize_t uuid_length;
-	uint32_t hash;
-	int ret;
-
-	ret = net_eth_mac_load(cfg, mac_addr);
-	if (ret != -ENODATA) {
-		if (ret < 0) {
-			LOG_ERR("Failed to load MAC address (%d)", ret);
-		}
-
-		return ret;
-	}
-
-	/*
-	 * Nothing defined by the user, hash the chip's unique ID. Note this is
-	 * not universally unique, it just is probably unique on a network.
-	 */
-	uuid_length = hwinfo_get_device_id(unique_device_id,
-					   sizeof(unique_device_id));
-	if (uuid_length <= 0) {
-		/*
-		 * Hashing the empty buffer would give every affected board the
-		 * same address, so refuse rather than hand out a duplicate.
-		 */
-		return (uuid_length < 0) ? (int)uuid_length : -ENODATA;
-	}
-
-	hash = crc24_pgp(unique_device_id, (size_t)uuid_length);
-
-	/* Setting LAA bit because it is not guaranteed universally unique */
-	mac_addr[0] = NXP_OUI_BYTE_0 | ETH_MAC_LAA_BIT;
-	mac_addr[1] = NXP_OUI_BYTE_1;
-	mac_addr[2] = NXP_OUI_BYTE_2;
-	mac_addr[3] = FIELD_GET(0xFF0000, hash);
-	mac_addr[4] = FIELD_GET(0x00FF00, hash);
-	mac_addr[5] = FIELD_GET(0x0000FF, hash);
-
-	return 0;
-}
-
 #define NXP_ETH_IRQ_CONNECT(name)                                                                  \
 	do {                                                                                       \
 		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, name, irq),                                     \
@@ -186,6 +134,7 @@ int dwmac_platform_init(const struct device *dev)
 {
 	const struct net_eth_mac_config mac_cfg = NET_ETH_MAC_DT_INST_CONFIG_INIT(0);
 	struct dwmac_priv *p = dev->data;
+	int ret;
 
 	p->tx_descs = dwmac_tx_descs;
 	p->rx_descs = dwmac_rx_descs;
@@ -213,7 +162,12 @@ int dwmac_platform_init(const struct device *dev)
 	NXP_ETH_IRQ_CONNECT(mac);
 #endif
 
-	return nxp_load_mac_addr(&mac_cfg, p->mac_addr);
+	ret = dwmac_mac_addr_load(&mac_cfg, nxp_oui, p->mac_addr);
+	if (ret != 0) {
+		LOG_ERR("Failed to load MAC address (%d)", ret);
+	}
+
+	return ret;
 }
 
 /* Our private device instance */

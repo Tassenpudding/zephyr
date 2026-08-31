@@ -16,7 +16,9 @@
 
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/net/ethernet.h>
+#include <zephyr/sys/crc.h>
 #include <zephyr/sys/device_mmio.h>
 
 /*
@@ -224,6 +226,65 @@ struct dwmac_priv {
 /*
  * Shared declarations between core and platform glue code
  */
+
+/** Locally administered address bit of the first MAC octet. */
+#define DWMAC_MAC_LAA_BIT 0x02
+
+/**
+ * NXP's OUI, as the base for an address derived from the SoC unique ID. The
+ * locally administered bit is set on top of it, so the result is not a
+ * registered address and the OUI itself carries no meaning; set
+ * local-mac-address in devicetree to use an assigned one instead.
+ */
+#define DWMAC_NXP_OUI {0x00, 0x04, 0x9f}
+
+/**
+ * @brief Load a MAC address, deriving one from the SoC unique ID as a fallback.
+ *
+ * Uses the address the devicetree provides when there is one. Otherwise hashes
+ * the SoC's unique ID into the lower three octets of @p oui and sets the
+ * locally administered bit, so a board without a stored address still gets one
+ * that survives a reset and is probably unique on its network segment.
+ *
+ * @param cfg      MAC address configuration from the devicetree.
+ * @param oui      Three-octet OUI the derived address is built on.
+ * @param mac_addr Output buffer of NET_ETH_ADDR_LEN bytes.
+ *
+ * @return 0 on success, negative errno on failure.
+ */
+static inline int dwmac_mac_addr_load(const struct net_eth_mac_config *cfg, const uint8_t oui[3],
+				      uint8_t *mac_addr)
+{
+	uint8_t unique_device_id[16] = {0};
+	ssize_t uuid_length;
+	uint32_t hash;
+	int ret;
+
+	ret = net_eth_mac_load(cfg, mac_addr);
+	if (ret != -ENODATA) {
+		return ret;
+	}
+
+	uuid_length = hwinfo_get_device_id(unique_device_id, sizeof(unique_device_id));
+	if (uuid_length <= 0) {
+		/*
+		 * Hashing the empty buffer would give every affected board the
+		 * same address, so refuse rather than hand out a duplicate.
+		 */
+		return (uuid_length < 0) ? (int)uuid_length : -ENODATA;
+	}
+
+	hash = crc24_pgp(unique_device_id, (size_t)uuid_length);
+
+	mac_addr[0] = oui[0] | DWMAC_MAC_LAA_BIT;
+	mac_addr[1] = oui[1];
+	mac_addr[2] = oui[2];
+	mac_addr[3] = FIELD_GET(0xFF0000, hash);
+	mac_addr[4] = FIELD_GET(0x00FF00, hash);
+	mac_addr[5] = FIELD_GET(0x0000FF, hash);
+
+	return 0;
+}
 
 int dwmac_probe(const struct device *dev);
 int dwmac_bus_init(const struct device *dev);

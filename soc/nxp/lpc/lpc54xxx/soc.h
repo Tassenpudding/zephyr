@@ -6,10 +6,10 @@
 
 /**
  * @file
- * @brief Board configuration macros for the nxp_lpc54114 platform
+ * @brief Board configuration macros for the nxp_lpc54xxx platform
  *
  * This header file is used to specify and describe board-level aspects for the
- * 'nxp_lpc54114' platform.
+ * 'nxp_lpc54xxx' platform.
  */
 
 #ifndef _SOC__H_

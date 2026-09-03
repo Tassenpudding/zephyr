@@ -6,10 +6,10 @@
 
 /**
  * @file
- * @brief System/hardware module for nxp_lpc54114 platform
+ * @brief System/hardware module for nxp_lpc54xxx platform
  *
  * This module provides routines to initialize and support board-level
- * hardware for the nxp_lpc54114 platform.
+ * hardware for the nxp_lpc54xxx platform.
  */
 
 #include <zephyr/kernel.h>

@@ -84,10 +84,10 @@ config SECOND_CORE_BOOT_ADDRESS_MCUX
 	help
 	  This is the address the second core will boot from.
 
-config LPC55XXX_SRAM_CLOCKS
-	bool "CLock LPC SRAM banks"
+config SOC_SERIES_LPC55XXX_SRAM_CLOCKS
+	bool "Clock LPC55XXX SRAM banks"
 
-config LPC55XXX_USB_RAM
+config SOC_SERIES_LPC55XXX_USB_RAM
 	bool
 
 if SOC_LPC55S69

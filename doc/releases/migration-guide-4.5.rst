@@ -144,6 +144,20 @@ Boards
   configuration that assigned the old symbol has to be updated, and fails to
   build until it is.
 
+* The NXP LPC SoC options that are scoped to a whole series now carry the
+  ``SOC_SERIES_`` base the Kconfig style guide asks for:
+  ``CONFIG_LPC54XXX_USB_RAM`` is now ``CONFIG_SOC_SERIES_LPC54XXX_USB_RAM``,
+  and ``CONFIG_LPC55XXX_SRAM_CLOCKS``, ``CONFIG_LPC55XXX_USB_RAM``,
+  ``CONFIG_INIT_PLL0`` and ``CONFIG_INIT_PLL1`` are now
+  ``CONFIG_SOC_SERIES_LPC55XXX_SRAM_CLOCKS``,
+  ``CONFIG_SOC_SERIES_LPC55XXX_USB_RAM``,
+  ``CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL0`` and
+  ``CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL1``. Defaults and behaviour are
+  unchanged. An out-of-tree Kconfig fragment or ``Kconfig.defconfig`` that
+  referred to an old name has to be updated; the USB RAM symbols have no
+  prompt, so a stale reference to those defines an unused symbol rather than
+  failing the build.
+
 * On RP2040 and RP2350, the ``vreg`` node (:dtcompatible:`raspberrypi,core-supply-regulator`) is
   now ``disabled`` by default instead of ``okay``. Out-of-tree boards that need this regulator
   must set ``status = "okay"`` on the ``&vreg`` node.

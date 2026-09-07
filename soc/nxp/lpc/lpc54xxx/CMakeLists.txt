@@ -16,7 +16,7 @@ zephyr_library_include_directories(
   )
 
 
-if(DEFINED CONFIG_LPC54XXX_USB_RAM)
+if(DEFINED CONFIG_SOC_SERIES_LPC54XXX_USB_RAM)
   zephyr_linker_sources_ifdef(CONFIG_USB_DEVICE_DRIVER SECTIONS usb.ld)
   zephyr_linker_sources_ifdef(CONFIG_UDC_DRIVER SECTIONS usb.ld)
   zephyr_linker_sources_ifdef(CONFIG_UHC_DRIVER SECTIONS usb.ld)

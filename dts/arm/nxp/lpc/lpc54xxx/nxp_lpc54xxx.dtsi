@@ -85,7 +85,7 @@
 		 * LPC540xx: 192K @ 0x04000000
 		 * LPC541xx:  32K @ 0x04000000
 		 */
-		sramx: memory@04000000 {
+		sramx: memory@4000000 {
 			compatible = "mmio-sram";
 			reg = <0x04000000 DT_SIZE_K(32)>;
 		};

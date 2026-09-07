@@ -61,12 +61,12 @@ config SOC_LPC55S69_CPU0
 
 if SOC_SERIES_LPC55XXX
 
-config INIT_PLL0
+config SOC_SERIES_LPC55XXX_INIT_PLL0
 	bool "Initialize PLL0"
 
-config INIT_PLL1
+config SOC_SERIES_LPC55XXX_INIT_PLL1
 	bool "Initialize PLL1"
-	default "y"
+	default y
 	depends on !(SOC_LPC55S06 || FLASH || BUILD_WITH_TFM)
 	help
 	  In the LPC55XXX Family, this is currently being used to set the

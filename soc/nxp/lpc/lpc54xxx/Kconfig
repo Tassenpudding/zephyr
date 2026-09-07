@@ -70,7 +70,7 @@ config SOC_SERIES_LPC54XXX_SRAM_CLOCKS
 	  will enable the clock to these RAM banks. Disable this Kconfig to
 	  leave these ram banks untouched out of reset.
 
-config LPC54XXX_USB_RAM
+config SOC_SERIES_LPC54XXX_USB_RAM
 	bool
 	help
 	  Link the USB device stack's endpoint command/status list and data

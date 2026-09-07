@@ -32,13 +32,13 @@ config BUILD_OUTPUT_ADJUST_LMA
 # SRAM controllers 1,2,3, and 4 are disabled at reset.
 # By default, CMSIS SystemInit will enable the clock to these RAM banks.
 # Disable this Kconfig to leave the ram banks untouched out of reset.
-config LPC55XXX_SRAM_CLOCKS
+config SOC_SERIES_LPC55XXX_SRAM_CLOCKS
 	default y
 
 # Some SoC's in the LPC5500 Series do have a dedicated USB RAM.
 # By default, USB RAM is assumed to be present.
 # Disable this Kconfig in case there is no dedicated USB RAM.
-config LPC55XXX_USB_RAM
+config SOC_SERIES_LPC55XXX_USB_RAM
 	default y if (!SOC_LPC55S06 && !SOC_LPC55S36)
 
 # Set to the minimal size of data which can be written.

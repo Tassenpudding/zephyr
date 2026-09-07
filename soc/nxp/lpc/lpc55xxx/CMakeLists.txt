@@ -11,7 +11,7 @@ zephyr_library_include_directories(
   ${ZEPHYR_BASE}/kernel/include
   ${ZEPHYR_BASE}/arch/${ARCH}/include
   )
-if(DEFINED CONFIG_LPC55XXX_USB_RAM)
+if(DEFINED CONFIG_SOC_SERIES_LPC55XXX_USB_RAM)
 zephyr_linker_sources_ifdef(CONFIG_USB_DEVICE_DRIVER
   SECTIONS usb.ld)
   zephyr_linker_sources_ifdef(CONFIG_UDC_DRIVER
@@ -26,7 +26,7 @@ endif()
 
 # CMSIS SystemInit allows us to skip enabling clock to SRAM banks via
 # this compiler definition
-if(NOT DEFINED CONFIG_LPC55XXX_SRAM_CLOCKS)
+if(NOT DEFINED CONFIG_SOC_SERIES_LPC55XXX_SRAM_CLOCKS)
 zephyr_compile_definitions(DONT_ENABLE_DISABLED_RAMBANKS=1)
 endif()
 

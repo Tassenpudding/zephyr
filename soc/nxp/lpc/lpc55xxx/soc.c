@@ -56,7 +56,7 @@ static uint32_t ExternalClockFrequency;
 	CLOCK_SetClkDiv(CTIMER_CLOCK_DIV_ID(DT_CLOCKS_CELL(node_id, name)), 1U, false);
 #endif /* CONFIG_SOC_LPC55S36 */
 
-#ifdef CONFIG_INIT_PLL0
+#ifdef CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL0
 const pll_setup_t pll0Setup = {
 	.pllctrl = SYSCON_PLL0CTRL_CLKEN_MASK | SYSCON_PLL0CTRL_SELI(2U) |
 		SYSCON_PLL0CTRL_SELP(31U),
@@ -68,7 +68,7 @@ const pll_setup_t pll0Setup = {
 };
 #endif
 
-#ifdef CONFIG_INIT_PLL1
+#ifdef CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL1
 const pll_setup_t pll1Setup = {
 	.pllctrl = SYSCON_PLL1CTRL_CLKEN_MASK | SYSCON_PLL1CTRL_SELI(53U) |
 		SYSCON_PLL1CTRL_SELP(31U),
@@ -112,7 +112,7 @@ __weak void clock_init(void)
 	ANACTRL->XO32M_CTRL |= ANACTRL_XO32M_CTRL_ENABLE_SYSTEM_CLK_OUT_MASK;
 
 	/* Setting the Core Clock to either 96MHz or in the case of using PLL, 144MHz */
-#if defined(CONFIG_SOC_LPC55S06) || !defined(CONFIG_INIT_PLL1)
+#if defined(CONFIG_SOC_LPC55S06) || !defined(CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL1)
 	SystemCoreClock = 96000000U;
 #else
 	SystemCoreClock = 144000000U;
@@ -132,13 +132,13 @@ __weak void clock_init(void)
 #endif /* !CONFIG_TRUSTED_EXECUTION_NONSECURE */
 
 
-#if defined(CONFIG_INIT_PLL0) || defined(CONFIG_INIT_PLL1)
+#if defined(CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL0) || defined(CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL1)
 	/* Configure XTAL32M */
 	ExternalClockFrequency = 16000000U;
 	CLOCK_SetupExtClocking(ExternalClockFrequency);
 #endif
 
-#if defined(CONFIG_SOC_LPC55S06) || !defined(CONFIG_INIT_PLL1)
+#if defined(CONFIG_SOC_LPC55S06) || !defined(CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL1)
 	/* Enable FRO HF(SystemCoreClock) output (Default expected value 96MHz) */
 	CLOCK_SetupFROClocking(SystemCoreClock);
 
@@ -158,10 +158,10 @@ __weak void clock_init(void)
 	/* Switch MAIN_CLK to FRO_HF */
 	CLOCK_AttachClk(kPLL1_to_MAIN_CLK);
 
-#endif /* CONFIG_SOC_LPC55S06 || !CONFIG_INIT_PLL1 */
+#endif /* CONFIG_SOC_LPC55S06 || !CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL1 */
 
 
-#ifdef CONFIG_INIT_PLL0
+#ifdef CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL0
 	/* Switch PLL0 clock source selector to XTAL32M */
 	CLOCK_AttachClk(kEXT_CLK_to_PLL0);
 
@@ -175,7 +175,7 @@ __weak void clock_init(void)
 	CLOCK_SetClkDiv(kCLOCK_DivPll0Clk, 0U, true);
 	CLOCK_SetClkDiv(kCLOCK_DivPll0Clk, 1U, false);
 #endif /* CONFIG_SOC_LPC55S36 */
-#endif /* CONFIG_INIT_PLL0 */
+#endif /* CONFIG_SOC_SERIES_LPC55XXX_INIT_PLL0 */
 
 
 	/* Set up dividers */

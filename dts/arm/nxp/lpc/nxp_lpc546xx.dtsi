@@ -39,6 +39,11 @@
 	};
 
 	soc {
+		rng: rng {
+			compatible = "nxp,lpc546xx-rng";
+			status = "okay";
+		};
+
 		uuid: flash@1000100 {
 			compatible = "nxp,lpc-uid";
 			reg = <0x01000100 0x10>;

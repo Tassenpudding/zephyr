@@ -444,6 +444,11 @@
 				status = "disabled";
 			};
 		};
+
+		rng: rng {
+			compatible = "nxp,lpc546xx-rng";
+			status = "okay";
+		};
 	};
 };
 

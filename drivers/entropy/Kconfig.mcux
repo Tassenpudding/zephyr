@@ -34,6 +34,15 @@ config ENTROPY_MCUX_RNG
 	  This option enables the true random number generator (TRNG)
 	  driver based on the MCUX RNG driver on LPC Family.
 
+config ENTROPY_MCUX_LPC546XX_RNG
+	bool "MCUX LPC546xx RNG driver"
+	default y
+	depends on DT_HAS_NXP_LPC546XX_RNG_ENABLED
+	select ENTROPY_HAS_DRIVER
+	help
+	  This option enables the random number generator driver for the LPC546xx
+	  family, which reads the generator through the boot ROM OTP driver.
+
 config ENTROPY_MCUX_CAAM
 	bool "MCUX CAAM driver"
 	default y

@@ -1,0 +1,13 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  LPC546xx Random Number Generator.
+
+  The generator has no memory mapped register interface. Random words are read
+  through the rngRead() entry of the OTP driver in boot ROM, so the node carries
+  no reg property.
+
+compatible: "nxp,lpc546xx-rng"
+
+include: base.yaml

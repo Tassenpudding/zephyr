@@ -55,9 +55,12 @@ static inline int mcux_wwdt_get_clock_frequency(const struct device *dev, uint32
 	switch ((uint32_t)config->clock_subsys) {
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(wwdt0)) || DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(wwdt))
 	case MCUX_WWDT0_CLK:
+/*
+ * LPC54xxx is absent on purpose: its watchdog runs straight from the dedicated
+ * watchdog oscillator and the SYSCON has no divider for it.
+ */
 #if defined(CONFIG_SOC_SERIES_MCXW2XX) || defined(CONFIG_SOC_SERIES_LPC55XXX) ||                   \
-	defined(CONFIG_SOC_SERIES_LPC54XXX) || defined(CONFIG_SOC_SERIES_LPC51U68) ||              \
-	defined(CONFIG_SOC_SERIES_LPC11U6X)
+	defined(CONFIG_SOC_SERIES_LPC51U68) || defined(CONFIG_SOC_SERIES_LPC11U6X)
 		CLOCK_SetClkDiv(kCLOCK_DivWdtClk, config->clk_divider, true);
 #elif defined(CONFIG_SOC_FAMILY_MCXA) || defined(CONFIG_SOC_FAMILY_MCXL)
 		CLOCK_SetClockDiv(kCLOCK_DivWWDT0, config->clk_divider);

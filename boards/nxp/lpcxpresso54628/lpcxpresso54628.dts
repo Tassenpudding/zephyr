@@ -472,3 +472,7 @@ arduino_serial: &flexcomm4 {
 &sha0 {
 	status = "okay";
 };
+
+&rit {
+	status = "okay";
+};

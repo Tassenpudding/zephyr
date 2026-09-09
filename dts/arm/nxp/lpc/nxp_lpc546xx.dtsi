@@ -531,6 +531,16 @@
 			compatible = "nxp,lpc546xx-rng";
 			status = "okay";
 		};
+
+		eeprom0: eeprom@40014000 {
+			compatible = "nxp,lpc-eeprom";
+			reg = <0x40014000 0x1000>, <0x40108000 DT_SIZE_K(16)>;
+			reg-names = "control", "memory";
+			interrupts = <52 0>;
+			clocks = <&syscon MCUX_BUS_CLK>;
+			size = <DT_SIZE_K(16)>;
+			status = "disabled";
+		};
 	};
 };
 

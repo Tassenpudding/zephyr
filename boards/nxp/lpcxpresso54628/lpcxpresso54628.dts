@@ -468,3 +468,8 @@ arduino_serial: &flexcomm4 {
 &eeprom0 {
 	status = "okay";
 };
+
+/* SHA-1 / SHA-256 engine. */
+&sha0 {
+	status = "okay";
+};

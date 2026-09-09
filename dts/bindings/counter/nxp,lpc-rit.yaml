@@ -1,0 +1,22 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  NXP LPC Repetitive Interrupt Timer.
+
+  The timer has a single 48 bit compare register, which the driver uses as the
+  counter top value, so the device exposes no alarm channels.
+
+compatible: "nxp,lpc-rit"
+
+include: base.yaml
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true

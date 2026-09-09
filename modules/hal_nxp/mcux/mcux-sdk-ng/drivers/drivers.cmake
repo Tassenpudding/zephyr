@@ -18,6 +18,7 @@ set_variable_ifdef(CONFIG_ADC_MCUX_LPADC        CONFIG_MCUX_COMPONENT_driver.lpa
 set_variable_ifdef(CONFIG_ADC_MCUX_LPC_ADC      CONFIG_MCUX_COMPONENT_driver.lpc_adc)
 set_variable_ifdef(CONFIG_ADC_MCUX_LPC_ADC_STREAM CONFIG_MCUX_COMPONENT_driver.ctimer)
 set_variable_ifdef(CONFIG_COUNTER_MCUX_CTIMER   CONFIG_MCUX_COMPONENT_driver.ctimer)
+set_variable_ifdef(CONFIG_COUNTER_MCUX_LPC_RIT  CONFIG_MCUX_COMPONENT_driver.rit)
 set_variable_ifdef(CONFIG_COUNTER_MCUX_LPC_RTC  CONFIG_MCUX_COMPONENT_driver.lpc_rtc)
 set_variable_ifdef(CONFIG_GLIKEY_MCUX_GLIKEY    CONFIG_MCUX_COMPONENT_driver.glikey)
 

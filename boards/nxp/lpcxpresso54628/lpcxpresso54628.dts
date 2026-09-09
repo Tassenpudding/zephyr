@@ -34,6 +34,7 @@
 		watchdog0 = &wwdt0;
 		rtc = &rtc;
 		dmic0 = &dmic0;
+		eeprom-0 = &eeprom0;
 	};
 
 	/*
@@ -483,4 +484,9 @@ arduino_serial: &flexcomm4 {
 	compatible = "nxp,lpc-usart";
 	pinctrl-0 = <&pinmux_flexcomm4_usart>;
 	pinctrl-names = "default";
+};
+
+/* 16 KB on-chip EEPROM. */
+&eeprom0 {
+	status = "okay";
 };

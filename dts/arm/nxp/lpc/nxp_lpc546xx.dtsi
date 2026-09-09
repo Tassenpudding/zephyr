@@ -541,6 +541,13 @@
 			size = <DT_SIZE_K(16)>;
 			status = "disabled";
 		};
+
+		sha0: sha@400a4000 {
+			compatible = "nxp,lpc-sha";
+			reg = <0x400a4000 0x1000>;
+			interrupts = <54 0>;
+			status = "disabled";
+		};
 	};
 };
 

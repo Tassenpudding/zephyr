@@ -1,0 +1,10 @@
+# Copyright 2026 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config EEPROM_MCUX_LPC
+	bool "NXP LPC on-chip EEPROM driver"
+	default y
+	depends on DT_HAS_NXP_LPC_EEPROM_ENABLED
+	help
+	  Enable the driver for the on-chip EEPROM found on NXP LPC parts with a
+	  dedicated EEPROM controller, such as the LPC546xx.

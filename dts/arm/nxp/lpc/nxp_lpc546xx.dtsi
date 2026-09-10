@@ -517,6 +517,18 @@
 			};
 		};
 
+		rtc: rtc@4002c000 {
+			compatible = "nxp,lpc-rtc";
+			reg = <0x4002c000 0x1000>;
+			interrupts = <29 0>;
+			status = "disabled";
+
+			rtc_highres: rtc_highres {
+				compatible = "nxp,lpc-rtc-highres";
+				status = "disabled";
+			};
+		};
+
 
 		lcdc: lcdc@40083000 {
 			compatible = "nxp,lpc-lcdc";

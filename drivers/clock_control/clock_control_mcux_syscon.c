@@ -10,6 +10,10 @@
 #include <zephyr/dt-bindings/clock/mcux_lpc_syscon_clock.h>
 #include <soc.h>
 #include <fsl_clock.h>
+#if defined(CONFIG_SOC_SERIES_LPC54XXX) && defined(CONFIG_WDT_MCUX_WWDT)
+#include <fsl_power.h>
+#endif
+
 #define LOG_LEVEL CONFIG_CLOCK_CONTROL_LOG_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(clock_control);
@@ -448,6 +452,17 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 #if defined(CONFIG_SOC_FAMILY_MCXA) || defined(CONFIG_SOC_FAMILY_MCXL)
 		CLOCK_EnableClock(kCLOCK_GateWWDT0);
 #elif defined(CONFIG_SOC_SERIES_MCXW2XX) || defined(CONFIG_SOC_FAMILY_LPC)
+#if defined(CONFIG_SOC_SERIES_LPC54XXX)
+		/*
+		 * The LPC546xx watchdog runs from the watchdog oscillator, which
+		 * is powered down out of reset and whose FREQSEL field selects no
+		 * frequency at all, so CLOCK_GetWdtOscFreq() would report 0. Bring
+		 * it up at its 1 MHz setting (FREQSEL 14, DIVSEL 0). The oscillator
+		 * is only accurate to +/-40 %, which is why it drives nothing else.
+		 */
+		POWER_DisablePD(kPDRUNCFG_PD_WDT_OSC);
+		SYSCON->WDTOSCCTRL = SYSCON_WDTOSCCTRL_FREQSEL(14) | SYSCON_WDTOSCCTRL_DIVSEL(0);
+#endif
 		CLOCK_EnableClock(kCLOCK_Wwdt);
 #else
 		CLOCK_EnableClock(kCLOCK_Wwdt0);
@@ -1107,6 +1122,9 @@ static int mcux_lpc_syscon_clock_control_get_subsys_rate(const struct device *de
 		*rate = CLOCK_GetWwdt0ClkFreq();
 #elif defined(CONFIG_SOC_FAMILY_MCXA) || defined(CONFIG_SOC_FAMILY_MCXL)
 		*rate = CLOCK_GetWwdtClkFreq();
+#elif defined(CONFIG_SOC_SERIES_LPC54XXX)
+		/* The watchdog is clocked by the dedicated watchdog oscillator. */
+		*rate = CLOCK_GetWdtOscFreq();
 #else
 		*rate = CLOCK_GetWdtClkFreq();
 #endif

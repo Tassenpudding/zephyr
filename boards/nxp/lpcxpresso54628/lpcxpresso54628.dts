@@ -198,6 +198,26 @@
 	reg = <0x20000000 DT_SIZE_K(160)>;
 };
 
+&ctimer0 {
+	status = "okay";
+};
+
+&ctimer1 {
+	status = "okay";
+};
+
+&ctimer2 {
+	status = "okay";
+};
+
+&ctimer3 {
+	status = "okay";
+};
+
+&ctimer4 {
+	status = "okay";
+};
+
 &flexcomm0 {
 	status = "okay";
 	compatible = "nxp,lpc-usart";

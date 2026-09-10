@@ -199,6 +199,11 @@
 	reg = <0x20000000 DT_SIZE_K(160)>;
 };
 
+/* On-chip peripherals with no pins or board wiring of their own. */
+&crc {
+	status = "okay";
+};
+
 &wwdt0 {
 	status = "okay";
 };

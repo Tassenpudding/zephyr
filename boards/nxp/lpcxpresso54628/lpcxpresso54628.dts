@@ -32,6 +32,7 @@
 		sw0 = &user_button;
 		accel0 = &mma8652fc;
 		dmic0 = &dmic0;
+		watchdog0 = &wwdt0;
 	};
 
 	/*
@@ -196,6 +197,10 @@
  */
 &sram0 {
 	reg = <0x20000000 DT_SIZE_K(160)>;
+};
+
+&wwdt0 {
+	status = "okay";
 };
 
 &ctimer0 {

@@ -10,6 +10,9 @@
 #include <zephyr/dt-bindings/clock/mcux_lpc_syscon_clock.h>
 #include <soc.h>
 #include <fsl_clock.h>
+#if defined(CONFIG_SOC_SERIES_LPC54XXX) && defined(CONFIG_WDT_MCUX_WWDT)
+#include <fsl_power.h>
+#endif
 
 #define LOG_LEVEL CONFIG_CLOCK_CONTROL_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -408,12 +411,6 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 		CLOCK_EnableClock(kCLOCK_GateTRNG0);
 	}
 #endif
-
-#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(espi0))
-	if ((uint32_t)sub_system == MCUX_ESPI0_CLK) {
-		CLOCK_EnableClock(kCLOCK_GateESPI0);
-	}
-#endif
 #endif
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(lpcmp0))
@@ -455,6 +452,17 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 #if defined(CONFIG_SOC_FAMILY_MCXA) || defined(CONFIG_SOC_FAMILY_MCXL)
 		CLOCK_EnableClock(kCLOCK_GateWWDT0);
 #elif defined(CONFIG_SOC_SERIES_MCXW2XX) || defined(CONFIG_SOC_FAMILY_LPC)
+#if defined(CONFIG_SOC_SERIES_LPC54XXX)
+		/*
+		 * The LPC546xx watchdog runs from the watchdog oscillator, which
+		 * is powered down out of reset and whose FREQSEL field selects no
+		 * frequency at all, so CLOCK_GetWdtOscFreq() would report 0. Bring
+		 * it up at its 1 MHz setting (FREQSEL 14, DIVSEL 0). The oscillator
+		 * is only accurate to +/-40 %, which is why it drives nothing else.
+		 */
+		POWER_DisablePD(kPDRUNCFG_PD_WDT_OSC);
+		SYSCON->WDTOSCCTRL = SYSCON_WDTOSCCTRL_FREQSEL(14) | SYSCON_WDTOSCCTRL_DIVSEL(0);
+#endif
 		CLOCK_EnableClock(kCLOCK_Wwdt);
 #else
 		CLOCK_EnableClock(kCLOCK_Wwdt0);
@@ -481,12 +489,6 @@ static int mcux_lpc_syscon_clock_control_on(const struct device *dev,
 #if DT_HAS_COMPAT_STATUS_OKAY(nxp_powerquad)
 	if ((uint32_t)sub_system == MCUX_POWERQUAD_CLK) {
 		CLOCK_EnableClock(kCLOCK_PowerQuad);
-	}
-#endif
-
-#if DT_HAS_COMPAT_STATUS_OKAY(nxp_aon_lpadc)
-	if ((uint32_t)sub_system == MCUX_AON_LPADC_CLK) {
-		CLOCK_EnableClock(kCLOCK_GateAonLPADC);
 	}
 #endif
 
@@ -772,6 +774,7 @@ static int mcux_lpc_syscon_clock_control_get_subsys_rate(const struct device *de
 
 #if defined(CONFIG_COUNTER_MCUX_CTIMER) || defined(CONFIG_PWM_MCUX_CTIMER)
 #if defined(CONFIG_SOC_SERIES_LPC54XXX)
+	/* LPC546xx has no per-timer clock select: CTIMER runs from the main clock. */
 	case MCUX_CTIMER0_CLK:
 	case MCUX_CTIMER1_CLK:
 	case MCUX_CTIMER2_CLK:
@@ -806,7 +809,7 @@ static int mcux_lpc_syscon_clock_control_get_subsys_rate(const struct device *de
 	case MCUX_CTIMER7_CLK:
 		*rate = CLOCK_GetCTimerClkFreq(7);
 		break;
-#endif /* defined(CONFIG_SOC_SERIES_LPC54XXX) */
+#endif
 #endif
 #if defined(CONFIG_COUNTER_NXP_MRT) || defined(CONFIG_SOC_SERIES_RW6XX) \
 		|| defined(CONFIG_PWM_MCUX_SCTIMER)
@@ -1119,6 +1122,9 @@ static int mcux_lpc_syscon_clock_control_get_subsys_rate(const struct device *de
 		*rate = CLOCK_GetWwdt0ClkFreq();
 #elif defined(CONFIG_SOC_FAMILY_MCXA) || defined(CONFIG_SOC_FAMILY_MCXL)
 		*rate = CLOCK_GetWwdtClkFreq();
+#elif defined(CONFIG_SOC_SERIES_LPC54XXX)
+		/* The watchdog is clocked by the dedicated watchdog oscillator. */
+		*rate = CLOCK_GetWdtOscFreq();
 #else
 		*rate = CLOCK_GetWdtClkFreq();
 #endif

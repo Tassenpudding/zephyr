@@ -213,6 +213,13 @@
 			num-inputs = <64>;
 		};
 
+		inputmux0: inputmux@40005000 {
+			compatible = "nxp,inputmux";
+			reg = <0x40005000 0x1000>;
+			#mux-control-cells = <1>;
+			#mux-state-cells = <2>;
+			status = "disabled";
+		};
 
 		flexcomm0: flexcomm@40086000 {
 			compatible = "nxp,lpc-flexcomm";
@@ -528,7 +535,6 @@
 				status = "disabled";
 			};
 		};
-
 
 		lcdc: lcdc@40083000 {
 			compatible = "nxp,lpc-lcdc";

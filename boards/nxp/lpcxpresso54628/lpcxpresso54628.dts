@@ -33,6 +33,7 @@
 		accel0 = &mma8652fc;
 		dmic0 = &dmic0;
 		watchdog0 = &wwdt0;
+		rtc = &rtc;
 		eeprom-0 = &eeprom0;
 	};
 
@@ -483,5 +484,9 @@ arduino_serial: &flexcomm4 {
 };
 
 &mrt0_channel0 {
+	status = "okay";
+};
+
+&rtc {
 	status = "okay";
 };

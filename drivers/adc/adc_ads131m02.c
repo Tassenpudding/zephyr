@@ -430,8 +430,7 @@ static int ads131m02_wait_drdy(const struct device *dev)
 			  ADC_CONTEXT_WAIT_FOR_COMPLETION_TIMEOUT);
 }
 
-static int ads131m02_read_sample(const struct device *dev,
-				 uint32_t channels, uint32_t *buffer)
+static int ads131m02_read_sample(const struct device *dev, uint32_t channels, int32_t *buffer)
 {
 	int ret;
 	uint16_t int_status;
@@ -446,10 +445,10 @@ static int ads131m02_read_sample(const struct device *dev,
 
 	int_status = sys_get_be16(&rx_buf[0]);
 	if ((int_status & ADS131M02_DRDY_CH0_MASK) && (channels & BIT(0))) {
-		*buffer = sys_get_be24(&rx_buf[3]);
+		*buffer = sign_extend(sys_get_be24(&rx_buf[3]), 23);
 	} else if ((int_status & ADS131M02_DRDY_CH1_MASK) &&
 		   (channels & BIT(1))) {
-		*buffer = sys_get_be24(&rx_buf[6]);
+		*buffer = sign_extend(sys_get_be24(&rx_buf[6]), 23);
 	} else {
 		LOG_INF("No ADC Data Available");
 	}

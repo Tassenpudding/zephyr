@@ -22,7 +22,7 @@
 
 LOG_MODULE_REGISTER(ads131m02, CONFIG_ADC_LOG_LEVEL);
 
-#define ADS131M02_DEVICE_ID		0x22
+#define ADS131M02_DEVICE_ID(n_ch) (0x20 | (n_ch))
 
 /* Device settings Registers */
 #define ADS131M02_ID_REG		0x00
@@ -53,10 +53,13 @@ LOG_MODULE_REGISTER(ads131m02, CONFIG_ADC_LOG_LEVEL);
 /* Register Map CRC Registers */
 #define ADS131M02_REGMAP_CRC_REG	0x3E
 
-#define ADC_CHANNEL_0			0
-#define ADC_CHANNEL_1			1
 #define ADS131M02_REF_INTERNAL		1200
 #define ADS131M02_RESOLUTION		24
+
+/* Frame: response, one word per channel and CRC, 24-bit words */
+#define ADS131M02_WORD_SIZE        3
+#define ADS131M02_FRAME_SIZE(n_ch) (((n_ch) + 2) * ADS131M02_WORD_SIZE)
+#define ADS131M02_MAX_FRAME_SIZE   ADS131M02_FRAME_SIZE(4)
 
 /* ADS131M02 cmds */
 #define ADS131M02_NULL_CMD		0x0000
@@ -68,14 +71,11 @@ LOG_MODULE_REGISTER(ads131m02, CONFIG_ADC_LOG_LEVEL);
 #define ADS131M02_RREG_CMD		0xA000
 #define ADS131M02_WREG_CMD		0x6000
 
-#define ADS131M02_RESET_RSP		0xFF22
+#define ADS131M02_RESET_RSP(n_ch) (0xFF20 | (n_ch))
 
-#define ADS131M02_GAIN0_MASK		GENMASK(2, 0)
-#define ADS131M02_GAIN1_MASK		GENMASK(6, 4)
-#define ADS131M02_CHANNEL0_ENABLE	BIT(8)
-#define ADS131M02_CHANNEL1_ENABLE	BIT(9)
-#define ADS131M02_DRDY_CH0_MASK		BIT(0)
-#define ADS131M02_DRDY_CH1_MASK		BIT(1)
+#define ADS131M02_GAIN_MASK(ch)         (GENMASK(2, 0) << (4 * (ch)))
+#define ADS131M02_CHANNEL_ENABLE(ch)    BIT(8 + (ch))
+#define ADS131M02_DRDY_MASK(ch)         BIT(ch)
 #define ADS131M02_OSR_256_MASK		BIT(2)
 #define ADS131M02_OSR_512_MASK		BIT(3)
 #define ADS131M02_OSR_1024_MASK		BIT(3) | BIT(2)
@@ -100,9 +100,6 @@ LOG_MODULE_REGISTER(ads131m02, CONFIG_ADC_LOG_LEVEL);
 #define ADS131M02_GAIN_64		6
 #define ADS131M02_GAIN_128		7
 
-#define ADS131M02_GAIN_MASK(channel_id)                                                            \
-	(channel_id == 0 ? ADS131M02_GAIN0_MASK : ADS131M02_GAIN1_MASK)
-
 #define ADS131M02_GET_GAIN(channel_id, gain) FIELD_PREP(ADS131M02_GAIN_MASK(channel_id), gain)
 
 enum ads131m02_data_rate {
@@ -120,6 +117,7 @@ enum ads131m02_data_rate {
 struct ads131m02_config {
 	const struct spi_dt_spec spi;
 	const struct gpio_dt_spec gpio_drdy;
+	uint8_t num_channels;
 };
 
 struct ads131m02_data {
@@ -308,16 +306,7 @@ static int ads131m02_setup(const struct device *dev,
 	}
 
 	enable = sys_get_be16(read_data);
-	switch (channel_cfg->channel_id) {
-	case ADC_CHANNEL_0:
-		enable |= ADS131M02_CHANNEL0_ENABLE;
-		break;
-	case ADC_CHANNEL_1:
-		enable |= ADS131M02_CHANNEL1_ENABLE;
-		break;
-	default:
-		return -EINVAL;
-	}
+	enable |= ADS131M02_CHANNEL_ENABLE(channel_cfg->channel_id);
 
 	enable &= ~(ADS131M02_OSR_16384_MASK);
 	ret = ads131m02_acquistion_time(channel_cfg->acquisition_time, &enable);
@@ -332,8 +321,9 @@ static int ads131m02_channel_setup(const struct device *dev,
 				   const struct adc_channel_cfg *channel_cfg)
 {
 	int ret;
+	const struct ads131m02_config *cfg = dev->config;
 
-	if (channel_cfg->channel_id != 0 && channel_cfg->channel_id != 1) {
+	if (channel_cfg->channel_id >= cfg->num_channels) {
 		return -EINVAL;
 	}
 
@@ -374,13 +364,16 @@ static int ads131m02_validate_buffer_size(const struct adc_sequence *sequence)
 	return 0;
 }
 
-static int ads131m02_validate_sequence(const struct adc_sequence *sequence)
+static int ads131m02_validate_sequence(const struct device *dev,
+				       const struct adc_sequence *sequence)
 {
+	const struct ads131m02_config *cfg = dev->config;
+
 	if (sequence->resolution != ADS131M02_RESOLUTION) {
 		return -EINVAL;
 	}
 
-	if (sequence->channels != BIT(0) && sequence->channels != BIT(1)) {
+	if (!IS_POWER_OF_TWO(sequence->channels) || sequence->channels >= BIT(cfg->num_channels)) {
 		LOG_ERR("invalid channel");
 		return -EINVAL;
 	}
@@ -417,7 +410,7 @@ static int ads131m02_adc_start_read(const struct device *dev,
 	int ret;
 	struct ads131m02_data *data = dev->data;
 
-	ret = ads131m02_validate_sequence(sequence);
+	ret = ads131m02_validate_sequence(dev, sequence);
 	if (ret != 0) {
 		LOG_ERR("sequence validation failed");
 		return ret;
@@ -445,20 +438,19 @@ static int ads131m02_read_sample(const struct device *dev, uint32_t channels, in
 	int ret;
 	uint16_t int_status;
 	uint8_t tx_buf[4] = {0};
-	uint8_t rx_buf[12] = {0};
+	uint8_t rx_buf[ADS131M02_MAX_FRAME_SIZE] = {0};
+	const struct ads131m02_config *cfg = dev->config;
+	uint8_t ch = find_lsb_set(channels) - 1;
 
-	ret = ads131m02_transceive(dev, tx_buf, sizeof(tx_buf),
-				   rx_buf, sizeof(rx_buf));
+	ret = ads131m02_transceive(dev, tx_buf, sizeof(tx_buf), rx_buf,
+				   ADS131M02_FRAME_SIZE(cfg->num_channels));
 	if (ret != 0) {
 		return ret;
 	}
 
 	int_status = sys_get_be16(&rx_buf[0]);
-	if ((int_status & ADS131M02_DRDY_CH0_MASK) && (channels & BIT(0))) {
-		*buffer = sign_extend(sys_get_be24(&rx_buf[3]), 23);
-	} else if ((int_status & ADS131M02_DRDY_CH1_MASK) &&
-		   (channels & BIT(1))) {
-		*buffer = sign_extend(sys_get_be24(&rx_buf[6]), 23);
+	if (int_status & ADS131M02_DRDY_MASK(ch)) {
+		*buffer = sign_extend(sys_get_be24(&rx_buf[(ch + 1) * ADS131M02_WORD_SIZE]), 23);
 	} else {
 		LOG_INF("No ADC Data Available");
 	}
@@ -551,18 +543,20 @@ static int ads131m02_configure_gpio(const struct device *dev)
 static int ads131m02_device_reset(const struct device *dev)
 {
 	int ret;
-	uint8_t tx_buf[12] = {0};
+	uint8_t tx_buf[ADS131M02_MAX_FRAME_SIZE] = {0};
 	uint8_t rx_buf[3] = {0};
+	const struct ads131m02_config *cfg = dev->config;
 
+	/* RESET is only latched at the end of a full frame */
 	sys_put_be16(ADS131M02_RESET_CMD, tx_buf);
-	ret = ads131m02_transceive(dev, tx_buf, sizeof(tx_buf),
-				   rx_buf, sizeof(rx_buf));
+	ret = ads131m02_transceive(dev, tx_buf, ADS131M02_FRAME_SIZE(cfg->num_channels), rx_buf,
+				   sizeof(rx_buf));
 
 	if (ret != 0) {
 		return ret;
 	}
 
-	if (sys_get_be16(rx_buf) != ADS131M02_RESET_RSP) {
+	if (sys_get_be16(rx_buf) != ADS131M02_RESET_RSP(cfg->num_channels)) {
 		return -EIO;
 	}
 
@@ -690,7 +684,7 @@ static int ads131m02_init(const struct device *dev)
 		return ret;
 	}
 
-	if (buf[0] != ADS131M02_DEVICE_ID) {
+	if (buf[0] != ADS131M02_DEVICE_ID(cfg->num_channels)) {
 		LOG_ERR("Device ID mismatch %d", buf[0]);
 		return -ENODEV;
 	}
@@ -723,20 +717,22 @@ static int ads131m02_init(const struct device *dev)
 	return 0;
 }
 
+#define ADC_ADS131M02_INST_DEFINE(n, n_ch)                                                         \
+	PM_DEVICE_DT_INST_DEFINE(n, ads131m02_pm_action);                                          \
+	static const struct ads131m02_config config_##n_ch##_##n = {                               \
+		.spi = SPI_DT_SPEC_INST_GET(n, SPI_OP_MODE_CONTROLLER | SPI_MODE_CPHA |            \
+						       SPI_WORD_SET(8)),                           \
+		.gpio_drdy = GPIO_DT_SPEC_INST_GET(n, drdy_gpios),                                 \
+		.num_channels = n_ch,                                                              \
+	};                                                                                         \
+	static struct ads131m02_data data_##n_ch##_##n;                                            \
+	DEVICE_DT_INST_DEFINE(n, ads131m02_init, PM_DEVICE_DT_INST_GET(n), &data_##n_ch##_##n,     \
+			      &config_##n_ch##_##n, POST_KERNEL, CONFIG_ADC_INIT_PRIORITY,         \
+			      &ads131m02_api);
+
 #define DT_DRV_COMPAT ti_ads131m02
+DT_INST_FOREACH_STATUS_OKAY_VARGS(ADC_ADS131M02_INST_DEFINE, 2)
+#undef DT_DRV_COMPAT
 
-#define ADC_ADS131M02_INST_DEFINE(n)						\
-	PM_DEVICE_DT_INST_DEFINE(n, ads131m02_pm_action);			\
-	static const struct ads131m02_config config_##n = {			\
-		.spi = SPI_DT_SPEC_INST_GET(					\
-			n, SPI_OP_MODE_CONTROLLER | SPI_MODE_CPHA |		\
-			SPI_WORD_SET(8)),					\
-		.gpio_drdy = GPIO_DT_SPEC_INST_GET(n, drdy_gpios),		\
-	};									\
-	static struct ads131m02_data data_##n;					\
-	DEVICE_DT_INST_DEFINE(n, ads131m02_init,				\
-			      PM_DEVICE_DT_INST_GET(n),				\
-			      &data_##n, &config_##n, POST_KERNEL,		\
-			      CONFIG_ADC_INIT_PRIORITY, &ads131m02_api);
-
-DT_INST_FOREACH_STATUS_OKAY(ADC_ADS131M02_INST_DEFINE)
+#define DT_DRV_COMPAT ti_ads131m04
+DT_INST_FOREACH_STATUS_OKAY_VARGS(ADC_ADS131M02_INST_DEFINE, 4)

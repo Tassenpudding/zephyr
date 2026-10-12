@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief Header file for extended API of ADS131M02 ADC
+ * @brief Header file for extended API of ADS131M02 and ADS131M04 ADC
  * @ingroup ads131m02_interface
  */
 
@@ -16,7 +16,7 @@
 #include <zephyr/device.h>
 
 /**
- * @brief Texas Instruments 2 channels SPI ADC
+ * @brief Texas Instruments ADS131M02 and ADS131M04 SPI ADC
  * @defgroup ads131m02_interface ADS131M02
  * @ingroup adc_interface_ext
  * @{

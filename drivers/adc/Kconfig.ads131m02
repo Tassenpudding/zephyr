@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config ADC_ADS131M02
-	bool "Texas instruments ADS131M02"
+	bool "Texas instruments ADS131M02 and ADS131M04"
 	default y
-	depends on DT_HAS_TI_ADS131M02_ENABLED
+	depends on DT_HAS_TI_ADS131M02_ENABLED || DT_HAS_TI_ADS131M04_ENABLED
 	select ADC_CONFIGURABLE_INPUTS
 	select SPI
 	select GPIO
 	help
-	 Enable the driver for ADS131M02 ADC.
+	  Enable the driver for the ADS131M02 and ADS131M04 ADCs.

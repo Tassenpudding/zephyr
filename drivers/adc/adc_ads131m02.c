@@ -100,9 +100,10 @@ LOG_MODULE_REGISTER(ads131m02, CONFIG_ADC_LOG_LEVEL);
 #define ADS131M02_GAIN_64		6
 #define ADS131M02_GAIN_128		7
 
-#define ADS131M02_GET_GAIN(channel_id, gain)	\
-		FIELD_PREP(channel_id == 0 ? ADS131M02_GAIN0_MASK : \
-			   ADS131M02_GAIN1_MASK, gain)
+#define ADS131M02_GAIN_MASK(channel_id)                                                            \
+	(channel_id == 0 ? ADS131M02_GAIN0_MASK : ADS131M02_GAIN1_MASK)
+
+#define ADS131M02_GET_GAIN(channel_id, gain) FIELD_PREP(ADS131M02_GAIN_MASK(channel_id), gain)
 
 enum ads131m02_data_rate {
 	/* SPS */
@@ -195,7 +196,9 @@ static int ads131m02_reg_write(const struct device *dev, uint16_t addr,
 static inline int ads131m02_configure_gain(const struct device *dev,
 					   const struct adc_channel_cfg *channel_cfg)
 {
+	int ret;
 	uint16_t gain_cfg;
+	uint8_t read_data[3] = {0};
 
 	switch (channel_cfg->gain) {
 	case ADC_GAIN_1:
@@ -233,6 +236,13 @@ static inline int ads131m02_configure_gain(const struct device *dev,
 	default:
 		return -EINVAL;
 	}
+
+	ret = ads131m02_reg_read(dev, ADS131M02_GAIN_REG, read_data, sizeof(read_data));
+	if (ret != 0) {
+		return ret;
+	}
+
+	gain_cfg |= sys_get_be16(read_data) & ~ADS131M02_GAIN_MASK(channel_cfg->channel_id);
 
 	return ads131m02_reg_write(dev, ADS131M02_GAIN_REG, gain_cfg);
 }

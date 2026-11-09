@@ -122,6 +122,8 @@ struct dwmac_config {
 	const clock_control_subsys_t mac_clk;
 #if defined(CONFIG_PTP_CLOCK_DWC_MAC)
 	const struct device *ptp_clock;
+	/* controller of ptp_clk, NULL when it is the same as clock */
+	const struct device *ptp_clk_dev;
 	const clock_control_subsys_t ptp_clk;
 #endif
 #if defined(CONFIG_NET_STATISTICS_ETHERNET_VENDOR)

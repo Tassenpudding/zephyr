@@ -173,7 +173,9 @@ static int dwmac_ptp_init(const struct device *dev)
 	}
 #endif /* DWMAC_PTP_PINCTRL_ENABLED */
 
-	ret = clock_control_get_rate(eth_cfg->clock, eth_cfg->ptp_clk, &ptp_clk_rate);
+	ret = clock_control_get_rate((eth_cfg->ptp_clk_dev != NULL) ? eth_cfg->ptp_clk_dev
+								    : eth_cfg->clock,
+				     eth_cfg->ptp_clk, &ptp_clk_rate);
 	if (ret < 0) {
 		return -EIO;
 	}

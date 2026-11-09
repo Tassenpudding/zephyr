@@ -151,24 +151,33 @@ BUILD_ASSERT(DT_INST_NODE_HAS_PROP(0, resets) || IS_ENABLED(CONFIG_SOC_SERIES_MC
 
 static const struct reset_dt_spec eth_reset = RESET_DT_SPEC_INST_GET_OR(0, {0});
 
-/* The clock controller cell is itself named "name", hence the repetition. */
-#define NXP_ETH_CLOCK_SUBSYS(clk)                                                                 \
-	(clock_control_subsys_t)DT_INST_CLOCKS_CELL_BY_NAME(0, clk, name)
+/*
+ * The clock controller cell is itself named "name", hence the repetition. A
+ * clock from a controller without cells, such as a fixed-clock, gets 0.
+ */
+#define NXP_ETH_CLOCK_SUBSYS(clk)                                                                  \
+	(clock_control_subsys_t)DT_INST_PHA_BY_NAME_OR(0, clocks, clk, name, 0)
 
-static const clock_control_subsys_t eth0_clocks[] = {
+#define NXP_ETH_CLOCK_DEV(clk) DEVICE_DT_GET(DT_INST_CLOCKS_CTLR_BY_NAME(0, clk))
+
+#define NXP_ETH_CLOCK(clk) {.dev = NXP_ETH_CLOCK_DEV(clk), .subsys = NXP_ETH_CLOCK_SUBSYS(clk)}
+
+static const struct {
+	const struct device *dev;
+	clock_control_subsys_t subsys;
+} eth0_clocks[] = {
 #if defined(CONFIG_SOC_SERIES_MCXE31X) || defined(CONFIG_SOC_SERIES_S32K3)
-	NXP_ETH_CLOCK_SUBSYS(tx),
-	NXP_ETH_CLOCK_SUBSYS(rx),
+	NXP_ETH_CLOCK(tx),
+	NXP_ETH_CLOCK(rx),
 #endif
 #if DT_INST_CLOCKS_HAS_NAME(0, ptp)
-	NXP_ETH_CLOCK_SUBSYS(ptp),
+	NXP_ETH_CLOCK(ptp),
 #endif
-	NXP_ETH_CLOCK_SUBSYS(mac),
+	NXP_ETH_CLOCK(mac),
 };
 
 int dwmac_bus_init(const struct device *dev)
 {
-	const struct dwmac_config *cfg = dev->config;
 	int ret;
 
 	/*
@@ -193,7 +202,7 @@ int dwmac_bus_init(const struct device *dev)
 	 * them on again.
 	 */
 	for (size_t n = 0; n < ARRAY_SIZE(eth0_clocks); n++) {
-		ret = clock_control_off(cfg->clock, eth0_clocks[n]);
+		ret = clock_control_off(eth0_clocks[n].dev, eth0_clocks[n].subsys);
 		if (ret != 0) {
 			LOG_ERR("Failed to disable ethernet clock #%zu (%d)", n, ret);
 			return ret;
@@ -234,7 +243,7 @@ int dwmac_bus_init(const struct device *dev)
 	 * PHY drives into the SoC, which is why the pads are muxed first.
 	 */
 	for (size_t n = 0; n < ARRAY_SIZE(eth0_clocks); n++) {
-		ret = clock_control_on(cfg->clock, eth0_clocks[n]);
+		ret = clock_control_on(eth0_clocks[n].dev, eth0_clocks[n].subsys);
 		if (ret != 0) {
 			LOG_ERR("Failed to enable ethernet clock #%zu (%d)", n, ret);
 			return ret;
@@ -363,6 +372,7 @@ static const struct dwmac_config dwmac_config = {
 	.mac_clk = NXP_ETH_CLOCK_SUBSYS(mac),
 #if defined(CONFIG_PTP_CLOCK_DWC_MAC)
 	.ptp_clock = DEVICE_DT_GET(DT_INST_CHILD(0, ptp_clock)),
+	.ptp_clk_dev = NXP_ETH_CLOCK_DEV(ptp),
 	.ptp_clk = NXP_ETH_CLOCK_SUBSYS(ptp),
 #endif
 #if defined(CONFIG_SOC_SERIES_MCXE31X) || defined(CONFIG_SOC_SERIES_S32K3)

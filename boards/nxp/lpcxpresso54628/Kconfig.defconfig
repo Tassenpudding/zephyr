@@ -6,6 +6,10 @@ if BOARD_LPCXPRESSO54628
 configdefault ETH_DRIVER
 	default y
 
+# The Ethernet PTP clock is the PHY's RMII reference clock, a fixed-clock.
+config CLOCK_CONTROL_FIXED_RATE_CLOCK
+	default y if ETH_NXP_DWC_ETHER_QOS
+
 if FXOS8700
 
 # The on-board MMA8652FC has no magnetometer.

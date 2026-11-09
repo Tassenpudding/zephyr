@@ -67,6 +67,13 @@
 			label = "User LED3";
 		};
 	};
+
+	/* 50 MHz RMII reference clock driven by the LAN8720A PHY */
+	rmii_ref_clk: rmii-ref-clk {
+		compatible = "fixed-clock";
+		clock-frequency = <DT_FREQ_M(50)>;
+		#clock-cells = <0>;
+	};
 };
 
 &cpu0 {
@@ -176,10 +183,16 @@ zephyr_udc0: &usbhs {
 
 /* 10/100 RMII Ethernet to the on-board LAN8720A PHY and RJ45 jack (J4). */
 &enet {
+	clocks = <&syscon MCUX_ENET_QOS_CLK>, <&rmii_ref_clk>;
+	clock-names = "mac", "ptp";
 	pinctrl-0 = <&pinmux_enet>;
 	pinctrl-names = "default";
 	phy-connection-type = "rmii";
 	phy-handle = <&phy>;
+	status = "okay";
+};
+
+&enet_ptp_clock {
 	status = "okay";
 };
 

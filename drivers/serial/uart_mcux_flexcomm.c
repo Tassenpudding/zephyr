@@ -42,8 +42,6 @@ struct mcux_flexcomm_config {
 	USART_Type *base;
 	const struct device *clock_dev;
 	clock_control_subsys_t clock_subsys;
-	uint32_t baud_rate;
-	uint8_t parity;
 #ifdef CONFIG_UART_MCUX_FLEXCOMM_ISR_SUPPORT
 	void (*irq_config_func)(const struct device *dev);
 #endif
@@ -96,9 +94,7 @@ struct mcux_flexcomm_data {
 	struct mcux_flexcomm_uart_tx_data tx_data;
 	struct mcux_flexcomm_uart_rx_data rx_data;
 #endif
-#ifdef CONFIG_UART_USE_RUNTIME_CONFIGURE
 	struct uart_config uart_config;
-#endif
 #if FC_UART_IS_WAKEUP
 	struct pm_notifier pm_handles;
 	uint16_t old_brg;
@@ -373,8 +369,8 @@ static void mcux_flexcomm_irq_callback_set(const struct device *dev,
 }
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 
-#ifdef CONFIG_UART_USE_RUNTIME_CONFIGURE
-static int mcux_flexcomm_uart_configure(const struct device *dev, const struct uart_config *cfg)
+static int mcux_flexcomm_uart_apply_config(const struct device *dev, const struct uart_config *cfg,
+					   bool reinit)
 {
 	const struct mcux_flexcomm_config *config = dev->config;
 	struct mcux_flexcomm_data *data = dev->data;
@@ -384,10 +380,14 @@ static int mcux_flexcomm_uart_configure(const struct device *dev, const struct u
 	usart_stop_bit_count_t stop_bits;
 	usart_data_len_t data_bits = kUSART_8BitsPerChar;
 	bool nine_bit_mode = false;
+	uint32_t int_mask = 0U;
 	uint32_t clock_freq;
+	status_t status;
 
 	/* Set up structure to reconfigure UART */
 	USART_GetDefaultConfig(&usart_config);
+	usart_config.enableTx = true;
+	usart_config.enableRx = true;
 
 	/* Set parity */
 	if (cfg->parity == UART_CFG_PARITY_ODD) {
@@ -438,25 +438,36 @@ static int mcux_flexcomm_uart_configure(const struct device *dev, const struct u
 		return -ENOTSUP;
 	}
 
-	/* USART_Deinit() disables the FIFO interrupts */
-	uint32_t int_mask = USART_GetEnabledInterrupts(config->base);
-
-	/* Wait for USART to finish transmission and turn off */
-	USART_Deinit(config->base);
-
 	/* Get UART clock frequency */
-	clock_control_get_rate(config->clock_dev,
-		config->clock_subsys, &clock_freq);
+	if (clock_control_get_rate(config->clock_dev, config->clock_subsys, &clock_freq) != 0) {
+		return -EINVAL;
+	}
+
+	if (reinit) {
+		/* USART_Deinit() disables the FIFO interrupts */
+		int_mask = USART_GetEnabledInterrupts(config->base);
+
+		/* Wait for USART to finish transmission and turn off */
+		USART_Deinit(config->base);
+	}
 
 	/* Reconfigure UART */
-	USART_Init(config->base, &usart_config, clock_freq);
+	status = USART_Init(config->base, &usart_config, clock_freq);
+
+	if (reinit) {
+		USART_EnableInterrupts(config->base, int_mask);
+	}
+
+	if (status == kStatus_USART_BaudrateNotSupport) {
+		return -ENOTSUP;
+	} else if (status != kStatus_Success) {
+		return -EIO;
+	}
 
 	/* USART_Init() writes the data length, so 9-bit mode is set afterwards */
 	if (nine_bit_mode) {
 		USART_Enable9bitMode(config->base, true);
 	}
-
-	USART_EnableInterrupts(config->base, int_mask);
 
 	/* Update driver device data */
 	uart_config->parity = cfg->parity;
@@ -466,6 +477,12 @@ static int mcux_flexcomm_uart_configure(const struct device *dev, const struct u
 	uart_config->flow_ctrl = cfg->flow_ctrl;
 
 	return 0;
+}
+
+#ifdef CONFIG_UART_USE_RUNTIME_CONFIGURE
+static int mcux_flexcomm_uart_configure(const struct device *dev, const struct uart_config *cfg)
+{
+	return mcux_flexcomm_uart_apply_config(dev, cfg, true);
 }
 
 static int mcux_flexcomm_uart_config_get(const struct device *dev,
@@ -1132,13 +1149,7 @@ static void mcux_flexcomm_isr(const struct device *dev)
 static int mcux_flexcomm_init_common(const struct device *dev)
 {
 	const struct mcux_flexcomm_config *config = dev->config;
-#ifdef CONFIG_UART_USE_RUNTIME_CONFIGURE
 	struct mcux_flexcomm_data *data = dev->data;
-	struct uart_config *cfg = &data->uart_config;
-#endif /* CONFIG_UART_USE_RUNTIME_CONFIGURE */
-	usart_config_t usart_config;
-	usart_parity_mode_t parity_mode;
-	uint32_t clock_freq;
 	int err;
 
 	err = pinctrl_apply_state(config->pincfg, PINCTRL_STATE_DEFAULT);
@@ -1150,36 +1161,10 @@ static int mcux_flexcomm_init_common(const struct device *dev)
 		return -ENODEV;
 	}
 
-	/* Get the clock frequency */
-	if (clock_control_get_rate(config->clock_dev, config->clock_subsys,
-				   &clock_freq)) {
-		return -EINVAL;
+	err = mcux_flexcomm_uart_apply_config(dev, &data->uart_config, false);
+	if (err) {
+		return err;
 	}
-
-	if (config->parity == UART_CFG_PARITY_ODD) {
-		parity_mode = kUSART_ParityOdd;
-	} else if (config->parity == UART_CFG_PARITY_EVEN) {
-		parity_mode = kUSART_ParityEven;
-	} else {
-		parity_mode = kUSART_ParityDisabled;
-	}
-
-	USART_GetDefaultConfig(&usart_config);
-	usart_config.enableTx = true;
-	usart_config.enableRx = true;
-	usart_config.parityMode = parity_mode;
-	usart_config.baudRate_Bps = config->baud_rate;
-
-#ifdef CONFIG_UART_USE_RUNTIME_CONFIGURE
-	cfg->baudrate = config->baud_rate;
-	cfg->parity = config->parity;
-	 /* From USART_GetDefaultConfig */
-	cfg->stop_bits = UART_CFG_STOP_BITS_1;
-	cfg->data_bits = UART_CFG_DATA_BITS_8;
-	cfg->flow_ctrl = UART_CFG_FLOW_CTRL_NONE;
-#endif /* CONFIG_UART_USE_RUNTIME_CONFIGURE */
-
-	USART_Init(config->base, &usart_config, clock_freq);
 
 #ifdef CONFIG_UART_MCUX_FLEXCOMM_ISR_SUPPORT
 	config->irq_config_func(dev);
@@ -1482,8 +1467,6 @@ static const struct mcux_flexcomm_config mcux_flexcomm_##n##_config = {		\
 	.clock_subsys = (clock_control_subsys_t)COND_CODE_1(			\
 		DT_PHA_HAS_CELL(DT_DRV_INST(n), clocks, name),			\
 		(DT_INST_CLOCKS_CELL(n, name)), (0U)),				\
-	.baud_rate = DT_INST_PROP(n, current_speed),				\
-	.parity = DT_INST_ENUM_IDX(n, parity),					\
 	.pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 	UART_MCUX_FLEXCOMM_LP_STATES_BIND(n)					\
 	UART_MCUX_FLEXCOMM_IRQ_CFG_FUNC_INIT(n)					\
@@ -1495,6 +1478,13 @@ static const struct mcux_flexcomm_config mcux_flexcomm_##n##_config = {		\
 
 #define UART_MCUX_FLEXCOMM_INIT_DATA(n)						\
 static struct mcux_flexcomm_data mcux_flexcomm_##n##_data = {			\
+	.uart_config = {							\
+		.baudrate = DT_INST_PROP(n, current_speed),			\
+		.parity = DT_INST_ENUM_IDX(n, parity),				\
+		.stop_bits = UART_CFG_STOP_BITS_1,				\
+		.data_bits = UART_CFG_DATA_BITS_8,				\
+		.flow_ctrl = UART_CFG_FLOW_CTRL_NONE,				\
+	},									\
 	UART_MCUX_FLEXCOMM_PM_HANDLES_BIND(n)					\
 };
 

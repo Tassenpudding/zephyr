@@ -448,11 +448,13 @@ static int mcux_flexcomm_uart_configure(const struct device *dev, const struct u
 	clock_control_get_rate(config->clock_dev,
 		config->clock_subsys, &clock_freq);
 
-	/* Handle 9 bit mode */
-	USART_Enable9bitMode(config->base, nine_bit_mode);
-
 	/* Reconfigure UART */
 	USART_Init(config->base, &usart_config, clock_freq);
+
+	/* USART_Init() writes the data length, so 9-bit mode is set afterwards */
+	if (nine_bit_mode) {
+		USART_Enable9bitMode(config->base, true);
+	}
 
 	USART_EnableInterrupts(config->base, int_mask);
 
